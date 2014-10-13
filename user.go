@@ -13,25 +13,31 @@ import (
 
 type User struct {
   Errors []string `json:"errors,omitempty" sql:"-"`
-  Id sql.NullInt64 `json:"id,omitempty"`
+  Id sql.NullInt64 `json:"-"`
+  CreatedAt time.Time `json:"created_at,omitempty"`
+  UpdatedAt time.Time `json:"updated_at,omitempty"`
   CryptedPassword string `json:"-"`
   Salt string `json:"-"`
   Email string `json:"email,omitempty"`
-  CreatedAt time.Time `json:"created_at,omitempty"`
-  UpdatedAt time.Time `json:"updated_at,omitempty"`
   NameFirst string `json:"name_first,omitempty"`
   NameLast string `json:"name_last,omitempty"`
   Password string `json:"-" sql:"-"`
   PasswordConfirmation string `json:"-" sql:"-"`
+  IosPushToken string `json:"-"`
 }
 
-// i.e attr_accessible
 type UserAttrs struct {
   NameFirst string `form:"user[name_first]"`
   NameLast string `form:"user[name_last]"`
   Email string `form:"user[email]"`
+  IosPushToken string `form:"user[ios_push_token]"`
   Password string `form:"user[password]"`
   PasswordConfirmation string `form:"user[password_confirmation]"`
+}
+
+type UserLoginAttrs struct {
+  Email string `form:"user[email]"`
+  Password string `form:"user[password]"`
 }
 
 func (x User) TableName() string {
@@ -53,14 +59,18 @@ func (x *User) BeforeCreate() (err error) {
 
 
   if (x.Password != "") {
-    if (x.PasswordConfirmation != "") {
-      if (x.Password != x.PasswordConfirmation) {
-        x.Errors = append(x.Errors, "Password confirmation doesn't match.")
+    if (userPasswordValid(x.Password)) {
+      if (x.PasswordConfirmation != "") {
+        if (x.Password != x.PasswordConfirmation) {
+          x.Errors = append(x.Errors, "Password confirmation doesn't match.")
+        } else {
+          x.SetPassword(x.Password)
+        }
       } else {
-        x.SetPassword(x.Password)
+        x.Errors = append(x.Errors, "Password confirmation can't be blank.")
       }
     } else {
-      x.Errors = append(x.Errors, "Password confirmation can't be blank.")
+      x.Errors = append(x.Errors, "Password must be at least 8 characters, and have no spaces")
     }
   } else {
     x.Errors = append(x.Errors, "Password can't be blank.")
@@ -83,14 +93,18 @@ func (x *User) BeforeUpdate() (err error) {
   x.validateEmail()
 
   if (x.Password != "") {
-    if (x.PasswordConfirmation != "") {
-      if (x.Password != x.PasswordConfirmation) {
-        x.Errors = append(x.Errors, "Password confirmation doesn't match.")
+    if (userPasswordValid(x.Password)) {
+      if (x.PasswordConfirmation != "") {
+        if (x.Password != x.PasswordConfirmation) {
+          x.Errors = append(x.Errors, "Password confirmation doesn't match.")
+        } else {
+          x.SetPassword(x.Password)
+        }
       } else {
-        x.SetPassword(x.Password)
+        x.Errors = append(x.Errors, "Password confirmation can't be blank.")
       }
     } else {
-      x.Errors = append(x.Errors, "Password confirmation can't be blank.")
+      x.Errors = append(x.Errors, "Password must be at least 8 characters, and have no spaces")
     }
   }
 
@@ -106,6 +120,12 @@ func (x *User) BeforeUpdate() (err error) {
 
 func (x *User) hasErrors() (bool) {
   return len(x.Errors) > 0
+}
+
+// 8 non-whitespace characters or more
+func userPasswordValid(password string) (bool) {
+  regex := regexp.MustCompile("\\A\\S{8,}\\z")
+  return regex.MatchString(password)
 }
 
 func (x *User) validateName() {
@@ -133,6 +153,7 @@ func (x *User) TrimSpace() {
   x.Email                = strings.TrimSpace(x.Email)
   x.PasswordConfirmation = strings.TrimSpace(x.PasswordConfirmation)
   x.Password             = strings.TrimSpace(x.Password)
+  x.IosPushToken         = strings.TrimSpace(x.IosPushToken)
 }
 
 //////////////////////////////
@@ -156,7 +177,6 @@ func (x *User) SetPassword(password string) (err error) {
 
   return
 }
-
 
 func (x *User) CheckPassword(password string) (success bool, err error) {
 

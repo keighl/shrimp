@@ -1,185 +1,85 @@
 package main
 
 import (
+  "os"
+  "encoding/json"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/render"
   "github.com/martini-contrib/binding"
+  "github.com/martini-contrib/cors"
   "github.com/jinzhu/gorm"
-  "net/http"
   _ "github.com/go-sql-driver/mysql"
-  _ "fmt"
 )
 
 var db gorm.DB
+var conf *Configuration
 
-/////////////////////////////
-
-func RouteAuthorize(c martini.Context, res http.ResponseWriter, req *http.Request) {
-  var err error
-  session_token := req.URL.Query().Get("session_token")
-  user := User{}
-
-  err = db.Table("users").Select("users.*").Joins("INNER JOIN api_sessions x on x.user_id = users.id").Where("session_token = ?", session_token).Limit(1).Scan(&user).Error
-
-  if (err != nil) {
-    res.WriteHeader(http.StatusUnauthorized)
-    return
-  }
-
-  c.Map(&user) // Map the user to be used in the route
-}
-
-/////////////////////////////
-
-func RouteLogin(r render.Render) {
-
-  var err error
-  var success bool
-  user := User{}
-  err = db.First(&user).Error
-
-  if (err != nil) {
-    data := new(ApiData)
-    data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
-    envelope := ApiEnvelope{data}
-    r.JSON(500, envelope)
-    return
-  }
-
-  success, err = user.CheckPassword("cheese")
-
-  if (err != nil || !success) {
-    data := new(ApiData)
-    data.ApiError = &ApiError{"Your email or password is invalid!", []string{}}
-    envelope := ApiEnvelope{data}
-    r.JSON(400, envelope)
-    return
-  }
-
-  apiSession := ApiSession{ UserId: user.Id }
-  err = db.Create(&apiSession).Error
-
-  if (err != nil) {
-    data := new(ApiData)
-    data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
-    envelope := ApiEnvelope{data}
-    r.JSON(500, envelope)
-    return
-  }
-
-  data := new(ApiData)
-  data.ApiSession = &apiSession
-  envelope := ApiEnvelope{data}
-  r.JSON(200, envelope)
+type Configuration struct {
+  DBDriveSources string
+  Debug bool
 }
 
 /////////////////////////////
 
 func RouteHome(r render.Render, user *User) {
-  data := new(ApiData)
-  data.User = user
-  envelope := ApiEnvelope{data}
-  r.JSON(200, envelope)
+  data := &ApiData{User: user}
+  r.JSON(200, ApiEnvelope{data})
   return
 }
-
-/////////////////////////////
-
-func RouteUserUpdate(r render.Render, user *User, attrs UserAttrs) {
-
-  var err error
-  err = db.Model(user).Updates(attrs).Error
-
-  if (err != nil) {
-    if (user.hasErrors()) {
-      data := new(ApiData)
-      data.ApiError = &ApiError{ err.Error(), user.Errors }
-      envelope := ApiEnvelope{data}
-      r.JSON(400, envelope)
-      return
-    } else {
-      data := new(ApiData)
-      data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
-      envelope := ApiEnvelope{data}
-      r.JSON(500, envelope)
-      return
-    }
-  }
-
-  data := new(ApiData)
-  data.User = user
-  envelope := ApiEnvelope{data}
-  r.JSON(200, envelope)
-}
-
-/////////////////////////////
-
-func RouteUserCreate(r render.Render, attrs UserAttrs) {
-
-  var err error
-  user := User {
-    NameFirst: attrs.NameFirst,
-    NameLast: attrs.NameLast,
-    Email: attrs.Email,
-    Password: attrs.Password,
-    PasswordConfirmation: attrs.PasswordConfirmation, }
-
-  err = db.Create(&user).Error
-
-  if (err != nil) {
-    if (user.hasErrors()) {
-      data := new(ApiData)
-      data.ApiError = &ApiError{ err.Error(), user.Errors }
-      envelope := ApiEnvelope{data}
-      r.JSON(400, envelope)
-      return
-    } else {
-      data := new(ApiData)
-      data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
-      envelope := ApiEnvelope{data}
-      r.JSON(500, envelope)
-      return
-    }
-  }
-
-  apiSession := ApiSession{ UserId: user.Id }
-  err = db.Create(&apiSession).Error
-
-  if (err != nil) {
-    data := new(ApiData)
-    data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
-    envelope := ApiEnvelope{data}
-    r.JSON(500, envelope)
-    return
-  }
-
-  data := new(ApiData)
-  data.User = &user
-  data.ApiSession = &apiSession
-  envelope := ApiEnvelope{data}
-  r.JSON(201, envelope)
-}
-
-
-/////////////////////////////
 
 func main() {
 
   var err error
-  db, err = gorm.Open("mysql", "root:@tcp(localhost:3306)/shrimp_development?charset=utf8&parseTime=True")
+
+  conffile, err := os.Open("conf.json")
+  if err != nil { panic(err) }
+  decoder := json.NewDecoder(conffile)
+  conf = &Configuration{}
+  err = decoder.Decode(&conf)
+  if err != nil { panic(err) }
+  conffile.Close()
+
+  // e.g root:@tcp(localhost:3306)/shrimp_development?charset=utf8&parseTime=True
+  db, err = gorm.Open("mysql", conf.DBDriveSources)
   if err != nil { panic(err) }
   defer db.Close()
-
-  db.LogMode(true)
+  if (conf.Debug) {
+    db.LogMode(true)
+  }
 
   m := martini.Classic()
 
+  // CORS middleware
+  m.Use(cors.Allow(&cors.Options{
+    AllowOrigins: []string{"*"},
+    AllowMethods: []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"},
+    AllowHeaders: []string{"*,x-requested-with,Content-Type,If-Modified-Since,If-None-Match"},
+    ExposeHeaders: []string{"Content-Length"},
+  }))
+
+  // Renderer middleware
   m.Use(render.Renderer())
 
+  // Routes!!
   m.Get("/", RouteAuthorize, RouteHome)
-  m.Get("/login", RouteLogin)
-  m.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
+  m.Post("/login", binding.Bind(UserLoginAttrs{}), RouteLogin)
   m.Post("/users", binding.Bind(UserAttrs{}), RouteUserCreate)
+  m.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
 
   m.Run()
+}
+
+//////////////////////////////
+// ENVELOPE HELPERS //////////
+
+func error500Envelope() (ApiEnvelope) {
+  data := new(ApiData)
+  data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
+  return ApiEnvelope{data}
+}
+
+func error400Envelope(message string, details []string) (ApiEnvelope) {
+  data := new(ApiData)
+  data.ApiError = &ApiError{message, details}
+  return ApiEnvelope{data}
 }

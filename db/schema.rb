@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20141007142311) do
+ActiveRecord::Schema.define(:version => 20141013114700) do
 
   create_table "api_clients", :force => true do |t|
     t.string   "client_id"
@@ -32,14 +32,17 @@ ActiveRecord::Schema.define(:version => 20141007142311) do
   end
 
   add_index "api_sessions", ["session_token"], :name => "index_api_sessions_on_session_token"
-  add_index "api_sessions", ["user_id", "session_token"], :name => "index_api_sessions_on_user_id_and_session_token"
+  add_index "api_sessions", ["user_id"], :name => "index_api_sessions_on_user_id"
 
   create_table "users", :force => true do |t|
+    t.string   "salt"
+    t.string   "crypted_password"
     t.string   "email"
     t.string   "name_first"
     t.string   "name_last"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.string   "ios_push_token"
   end
 
 end
