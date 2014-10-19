@@ -56,7 +56,7 @@ func (x *User) BeforeCreate() (err error) {
   x.TrimSpace()
   x.validateName()
   x.validateEmail()
-
+  x.validateEmailUniqueness()
 
   if (x.Password != "") {
     if (userPasswordValid(x.Password)) {
@@ -91,6 +91,7 @@ func (x *User) BeforeUpdate() (err error) {
   x.TrimSpace()
   x.validateName()
   x.validateEmail()
+  x.validateEmailUniqueness()
 
   if (x.Password != "") {
     if (userPasswordValid(x.Password)) {
@@ -144,6 +145,26 @@ func (x *User) validateEmail() {
 
   if (!emailMatch) {
     x.Errors = append(x.Errors, "Your email address is invalid.")
+  }
+}
+
+func (x *User) validateEmailUniqueness() {
+  count := 0
+  if (x.Id.Int64 == 0) {
+    db.
+      Model(&User{}).
+      Where("email = ?", strings.TrimSpace(x.Email)).
+      Count(&count)
+  } else {
+    db.
+      Model(&User{}).
+      Where("email = ?", strings.TrimSpace(x.Email)).
+      Not([]int64{x.Id.Int64}).
+      Count(&count)
+  }
+
+  if (count > 0) {
+    x.Errors = append(x.Errors, "That email address is already taken.")
   }
 }
 

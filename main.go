@@ -1,6 +1,7 @@
 package main
 
 import (
+  // "fmt"
   "os"
   "encoding/json"
   "github.com/go-martini/martini"
@@ -8,6 +9,7 @@ import (
   "github.com/martini-contrib/binding"
   "github.com/martini-contrib/cors"
   "github.com/jinzhu/gorm"
+  "github.com/jrallison/go-workers"
   _ "github.com/go-sql-driver/mysql"
 )
 
@@ -22,6 +24,9 @@ type Configuration struct {
 /////////////////////////////
 
 func RouteHome(r render.Render, user *User) {
+  // Trigger a background job, just for fun
+  workers.Enqueue("dummyQueue", "Add", user.Id.Int64)
+
   data := &ApiData{User: user}
   r.JSON(200, ApiEnvelope{data})
   return
@@ -47,6 +52,19 @@ func main() {
     db.LogMode(true)
   }
 
+  m := NewMartiniServer()
+
+  ConfigureWorkerServer()
+  workers.Start()
+
+  m.Run() // Blocks....
+  workers.Quit()
+}
+
+////////////////////////////
+
+func NewMartiniServer() *martini.ClassicMartini {
+  // Martini
   m := martini.Classic()
 
   // CORS middleware
@@ -66,7 +84,7 @@ func main() {
   m.Post("/users", binding.Bind(UserAttrs{}), RouteUserCreate)
   m.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
 
-  m.Run()
+  return m
 }
 
 //////////////////////////////

@@ -3,5 +3,7 @@ tmp
 .ruby-version
 gin-bin
 db/config.yml
+conf/redis.conf
 conf.json
 *.httpclient
+*.rdb
