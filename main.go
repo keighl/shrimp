@@ -36,7 +36,7 @@ func main() {
 
   var err error
 
-  conffile, err := os.Open("conf.json")
+  conffile, err := os.Open("conf/app.json")
   if err != nil { panic(err) }
   decoder := json.NewDecoder(conffile)
   conf = &Configuration{}

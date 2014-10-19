@@ -4,6 +4,6 @@ tmp
 gin-bin
 db/config.yml
 conf/redis.conf
-conf.json
-*.httpclient
+conf/app.json
+httpclient
 *.rdb
