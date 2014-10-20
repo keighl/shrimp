@@ -8,13 +8,13 @@ import (
   "errors"
   "regexp"
   "strings"
-  "database/sql"
+  _ "database/sql"
 )
 
 type User struct {
   Errors []string `json:"errors,omitempty" sql:"-"`
   ErrorMap map[string]bool `json:"-" sql:"-"`
-  Id sql.NullInt64 `json:"-"`
+  Id int64 `json:"-"`
   CreatedAt time.Time `json:"created_at,omitempty"`
   UpdatedAt time.Time `json:"updated_at,omitempty"`
   CryptedPassword string `json:"-"`
@@ -49,7 +49,7 @@ func (x *User) BeforeSave() (err error) {
   x.CreatedAt = time.Now()
   x.UpdatedAt = time.Now()
 
-  x.TrimSpace()
+  x.Trimspace()
   x.ValidateName()
   x.ValidateEmail()
   x.ValidateEmailUniqueness()
@@ -145,7 +145,7 @@ func (x *User) ValidateEmail() {
 
 func (x *User) ValidateEmailUniqueness() {
   count := 0
-  if (x.Id.Int64 == 0) {
+  if (x.Id == 0) {
     db.
       Model(&User{}).
       Where("email = ?", strings.TrimSpace(x.Email)).
@@ -154,7 +154,7 @@ func (x *User) ValidateEmailUniqueness() {
     db.
       Model(&User{}).
       Where("email = ?", strings.TrimSpace(x.Email)).
-      Not([]int64{x.Id.Int64}).
+      Not([]int64{x.Id}).
       Count(&count)
   }
 
@@ -164,7 +164,7 @@ func (x *User) ValidateEmailUniqueness() {
   }
 }
 
-func (x *User) TrimSpace() {
+func (x *User) Trimspace() {
   x.NameFirst            = strings.TrimSpace(x.NameFirst)
   x.NameLast             = strings.TrimSpace(x.NameLast)
   x.Email                = strings.TrimSpace(x.Email)
@@ -223,11 +223,13 @@ func (x *UserAttrs) User() (*User) {
   }
 }
 
-func (x *User) UserAttrs() (UserAttrs) {
-  return UserAttrs{
+func (x *User) UserAttrs() (*UserAttrs) {
+  return &UserAttrs{
     NameFirst: x.NameFirst,
     NameLast: x.NameLast,
     Email: x.Email,
+    Password: x.Password,
+    PasswordConfirmation: x.PasswordConfirmation,
     IosPushToken: x.IosPushToken,
   }
 }

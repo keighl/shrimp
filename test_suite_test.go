@@ -30,6 +30,7 @@ func setup(t *testing.T) {
   db.LogMode(false)
   db.Exec("TRUNCATE TABLE users")
   db.Exec("TRUNCATE TABLE api_sessions")
+  db.Exec("TRUNCATE TABLE todos")
 
   DefineFactories()
   server = NewMartiniServer()
@@ -66,6 +67,22 @@ func DefineFactories() {
       })
     factory["Password"] = "Password1"
     factory["PasswordConfirmation"] = "Password1"
+  })
+
+  gory.Define("todo", Todo{}, func(factory gory.Factory) {
+    factory["Title"] = gory.Sequence(
+      func(n int) interface{} {
+        return fmt.Sprintf("Todo #%d", n)
+      })
+    factory["Complete"] = false
+  })
+
+  gory.Define("todoAttrs", TodoAttrs{}, func(factory gory.Factory) {
+    factory["Title"] = gory.Sequence(
+      func(n int) interface{} {
+        return fmt.Sprintf("Todo #%d", n)
+      })
+    factory["Complete"] = false
   })
 }
 

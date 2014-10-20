@@ -25,7 +25,7 @@ type Configuration struct {
 /////////////////////////////
 
 func RouteHome(r render.Render, user *User) {
-  data := &ApiData{User: user}
+  data := &ApiData{User: user, CurrentUser: user}
   r.JSON(200, ApiEnvelope{data})
   return
 }
@@ -83,6 +83,12 @@ func NewMartiniServer() *martini.ClassicMartini {
   m.Post("/login", binding.Bind(UserAttrs{}), RouteLogin)
   m.Post("/users", binding.Bind(UserAttrs{}), RouteUserCreate)
   m.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
+
+  m.Get("/todos", RouteAuthorize, RouteTodosIndex)
+  m.Post("/todos", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosCreate)
+  m.Get("/todos/:todo_id", RouteAuthorize, RouteTodosShow)
+  m.Put("/todos/:todo_id", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosUpdate)
+  // m.Delete("/todos/:todo_id", RouteAuthorize, RouteTodoDestroy)
 
   return m
 }

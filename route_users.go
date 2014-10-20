@@ -19,7 +19,7 @@ func RouteUserCreate(r render.Render, attrs UserAttrs) {
     return
   }
 
-  apiSession := ApiSession{ UserId: user.Id }
+  apiSession := ApiSession{UserId: user.Id}
   err = db.Create(&apiSession).Error
 
   if (err != nil) {
@@ -27,7 +27,7 @@ func RouteUserCreate(r render.Render, attrs UserAttrs) {
     return
   }
 
-  data := &ApiData{User: user, ApiSession: &apiSession}
+  data := &ApiData{User: user, ApiSession: &apiSession, CurrentUser: user}
   r.JSON(201, ApiEnvelope{data})
 }
 
@@ -47,7 +47,7 @@ func RouteUserUpdate(r render.Render, user *User, attrs UserAttrs) {
     return
   }
 
-  data := &ApiData{User: user}
+  data := &ApiData{User: user, CurrentUser: user}
   r.JSON(200, ApiEnvelope{data})
 }
 

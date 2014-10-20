@@ -58,7 +58,7 @@ func RouteLogin(r render.Render, attrs UserAttrs) {
     return
   }
 
-  apiSession := &ApiSession{ UserId: user.Id }
+  apiSession := &ApiSession{ UserId: user.Id}
   err = db.Create(apiSession).Error
 
   if (err != nil) {

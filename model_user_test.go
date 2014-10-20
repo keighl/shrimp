@@ -2,6 +2,7 @@ package main
 
 import (
   "testing"
+  "reflect"
   "github.com/modocache/gory"
 )
 
@@ -71,10 +72,20 @@ func Test_User_Password_Confirmed(t *testing.T) {
   setup(t)
   user := gory.Build("user").(*User)
   user.Password = "password"
-  user.PasswordConfirmation = "password!!"
+
+  // Blank
+  user.PasswordConfirmation = ""
   err := db.Create(user).Error
   refute(t, err, nil)
   expect(t, user.ErrorMap["PasswordConfirmation"], true)
+
+  // Wrong
+  user.PasswordConfirmation = "password!!"
+  err = db.Create(user).Error
+  refute(t, err, nil)
+  expect(t, user.ErrorMap["PasswordConfirmation"], true)
+
+  // Correct
   user.Password = "password"
   user.PasswordConfirmation = "password"
   err = db.Create(user).Error
@@ -102,3 +113,37 @@ func Test_User_Update_Optional_Password(t *testing.T) {
   err := db.Save(user).Error
   expect(t, err, nil)
 }
+
+/////////////////////////
+// ATTR CONVERSION //////
+
+func Test_User_UserAttrs(t *testing.T) {
+  setup(t)
+  obj := gory.Build("user").(*User)
+  targetByMethod := obj.UserAttrs()
+  targetByHand := &UserAttrs{
+    NameFirst: obj.NameFirst,
+    NameLast: obj.NameLast,
+    Email: obj.Email,
+    Password: obj.Password,
+    PasswordConfirmation: obj.PasswordConfirmation,
+    IosPushToken: obj.IosPushToken,
+  }
+  expect(t, reflect.DeepEqual(targetByHand, targetByMethod), true)
+}
+
+func Test_UserAttrs_User(t *testing.T) {
+  setup(t)
+  obj := gory.Build("userAttrs").(*UserAttrs)
+  targetByMethod := obj.User()
+  targetByHand := &User{
+    NameFirst: obj.NameFirst,
+    NameLast: obj.NameLast,
+    Email: obj.Email,
+    Password: obj.Password,
+    PasswordConfirmation: obj.PasswordConfirmation,
+    IosPushToken: obj.IosPushToken,
+  }
+  expect(t, reflect.DeepEqual(targetByHand, targetByMethod), true)
+}
+
