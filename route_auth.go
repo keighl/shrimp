@@ -11,19 +11,25 @@ import (
 
 func RouteAuthorize(c martini.Context, r render.Render, req *http.Request) {
   var err error
-  session_token := req.URL.Query().Get("session_token")
+  var sessionToken string
+
+  sessionToken = req.Header.Get("X-SESSION-TOKEN")
+  if (sessionToken == "") {
+    sessionToken = req.URL.Query().Get("session_token")
+  }
+
   user := &User{}
 
   err = db.
     Table("users").
     Select("users.*").
     Joins("INNER JOIN api_sessions x on x.user_id = users.id").
-    Where("session_token = ?", strings.TrimSpace(session_token)).
+    Where("session_token = ?", strings.TrimSpace(sessionToken)).
     Limit(1).
     Scan(user).Error
 
   if (err != nil) {
-    r.JSON(401, error400Envelope("Your token is invalid!", []string{}))
+    r.JSON(401, Error400Envelope("Your token is invalid!", []string{}))
     return
   }
 
@@ -32,7 +38,7 @@ func RouteAuthorize(c martini.Context, r render.Render, req *http.Request) {
 
 /////////////////////////////
 
-func RouteLogin(r render.Render, attrs UserLoginAttrs) {
+func RouteLogin(r render.Render, attrs UserAttrs) {
 
   var err error
   var success bool
@@ -41,14 +47,14 @@ func RouteLogin(r render.Render, attrs UserLoginAttrs) {
   err = db.Where("email = ?", strings.TrimSpace(attrs.Email)).First(user).Error
 
   if (err != nil) {
-    r.JSON(401, error400Envelope("Your email or password is invalid!", []string{}))
+    r.JSON(401, Error400Envelope("Your email or password is invalid!", []string{}))
     return
   }
 
   success, err = user.CheckPassword(strings.TrimSpace(attrs.Password))
 
   if (err != nil || !success) {
-    r.JSON(401, error400Envelope("Your email or password is invalid!", []string{}))
+    r.JSON(401, Error400Envelope("Your email or password is invalid!", []string{}))
     return
   }
 
@@ -56,7 +62,7 @@ func RouteLogin(r render.Render, attrs UserLoginAttrs) {
   err = db.Create(apiSession).Error
 
   if (err != nil) {
-    r.JSON(500, error500Envelope())
+    r.JSON(500, Error500Envelope())
     return
   }
 

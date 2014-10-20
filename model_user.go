@@ -13,6 +13,7 @@ import (
 
 type User struct {
   Errors []string `json:"errors,omitempty" sql:"-"`
+  ErrorMap map[string]bool `json:"-" sql:"-"`
   Id sql.NullInt64 `json:"-"`
   CreatedAt time.Time `json:"created_at,omitempty"`
   UpdatedAt time.Time `json:"updated_at,omitempty"`
@@ -26,57 +27,48 @@ type User struct {
   IosPushToken string `json:"-"`
 }
 
-type UserAttrs struct {
-  NameFirst string `form:"user[name_first]"`
-  NameLast string `form:"user[name_last]"`
-  Email string `form:"user[email]"`
-  IosPushToken string `form:"user[ios_push_token]"`
-  Password string `form:"user[password]"`
-  PasswordConfirmation string `form:"user[password_confirmation]"`
-}
-
-type UserLoginAttrs struct {
-  Email string `form:"user[email]"`
-  Password string `form:"user[password]"`
-}
-
 func (x User) TableName() string {
   return "users"
+}
+
+type UserAttrs struct {
+  NameFirst string `json:"name_first" form:"name_first"`
+  NameLast string `json:"name_last" form:"name_last"`
+  Email string `json:"email" form:"email"`
+  IosPushToken string `json:"ios_push_token" form:"ios_push_token"`
+  Password string `json:"password" form:"password"`
+  PasswordConfirmation string `json:"password_confirmation" form:"password_confirmation"`
 }
 
 //////////////////////////////
 // CALLBACKS /////////////////
 
-func (x *User) BeforeCreate() (err error) {
-
+func (x *User) BeforeSave() (err error) {
   x.Errors    = []string{}
+  x.ErrorMap  = map[string]bool{}
   x.CreatedAt = time.Now()
   x.UpdatedAt = time.Now()
 
   x.TrimSpace()
-  x.validateName()
-  x.validateEmail()
-  x.validateEmailUniqueness()
+  x.ValidateName()
+  x.ValidateEmail()
+  x.ValidateEmailUniqueness()
+
+  return
+}
+
+func (x *User) BeforeCreate() (err error) {
 
   if (x.Password != "") {
-    if (userPasswordValid(x.Password)) {
-      if (x.PasswordConfirmation != "") {
-        if (x.Password != x.PasswordConfirmation) {
-          x.Errors = append(x.Errors, "Password confirmation doesn't match.")
-        } else {
-          x.SetPassword(x.Password)
-        }
-      } else {
-        x.Errors = append(x.Errors, "Password confirmation can't be blank.")
-      }
-    } else {
-      x.Errors = append(x.Errors, "Password must be at least 8 characters, and have no spaces")
+    if (x.validatePasswordAndConfirmation()) {
+      x.SetPassword(x.Password)
     }
   } else {
     x.Errors = append(x.Errors, "Password can't be blank.")
+    x.ErrorMap["Password"] = true
   }
 
-  if (len(x.Errors) > 0) {
+  if (x.HasErrors()) {
     err = errors.New("There was a problem saving your info.")
   }
 
@@ -85,31 +77,13 @@ func (x *User) BeforeCreate() (err error) {
 
 func (x *User) BeforeUpdate() (err error) {
 
-  x.Errors    = []string{}
-  x.UpdatedAt = time.Now()
-
-  x.TrimSpace()
-  x.validateName()
-  x.validateEmail()
-  x.validateEmailUniqueness()
-
   if (x.Password != "") {
-    if (userPasswordValid(x.Password)) {
-      if (x.PasswordConfirmation != "") {
-        if (x.Password != x.PasswordConfirmation) {
-          x.Errors = append(x.Errors, "Password confirmation doesn't match.")
-        } else {
-          x.SetPassword(x.Password)
-        }
-      } else {
-        x.Errors = append(x.Errors, "Password confirmation can't be blank.")
-      }
-    } else {
-      x.Errors = append(x.Errors, "Password must be at least 8 characters, and have no spaces")
+    if (x.validatePasswordAndConfirmation()) {
+      x.SetPassword(x.Password)
     }
   }
 
-  if (len(x.Errors) > 0) {
+  if (x.HasErrors()) {
     err = errors.New("There was a problem saving your info.")
   }
 
@@ -119,36 +93,57 @@ func (x *User) BeforeUpdate() (err error) {
 //////////////////////////////
 // VALIDATIONS ///////////////
 
-func (x *User) hasErrors() (bool) {
+func (x *User) HasErrors() (bool) {
   return len(x.Errors) > 0
 }
 
-// 8 non-whitespace characters or more
-func userPasswordValid(password string) (bool) {
+func (x *User) validatePasswordAndConfirmation() (success bool) {
+  // 8 non-whitespace characters or more
   regex := regexp.MustCompile("\\A\\S{8,}\\z")
-  return regex.MatchString(password)
+
+  if (regex.MatchString(x.Password)) {
+    if (x.PasswordConfirmation != "") {
+      if (x.Password != x.PasswordConfirmation) {
+        x.Errors = append(x.Errors, "Password confirmation doesn't match.")
+        x.ErrorMap["PasswordConfirmation"] = true
+      } else {
+        return true
+      }
+    } else {
+      x.Errors = append(x.Errors, "Password confirmation can't be blank.")
+      x.ErrorMap["PasswordConfirmation"] = true
+    }
+  } else {
+    x.Errors = append(x.Errors, "Password must be at least 8 characters, and have no spaces")
+    x.ErrorMap["Password"] = true
+  }
+
+  return false
 }
 
-func (x *User) validateName() {
+func (x *User) ValidateName() {
   if (x.NameFirst == "") {
     x.Errors = append(x.Errors, "First name can't be blank.")
+    x.ErrorMap["NameFirst"] = true
   }
 
   if (x.NameLast == "") {
     x.Errors = append(x.Errors, "Last name can't be blank.")
+    x.ErrorMap["NameLast"] = true
   }
 }
 
-func (x *User) validateEmail() {
+func (x *User) ValidateEmail() {
   regex := regexp.MustCompile("\\A[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\\z")
   emailMatch := regex.MatchString(x.Email)
 
   if (!emailMatch) {
     x.Errors = append(x.Errors, "Your email address is invalid.")
+    x.ErrorMap["Email"] = true
   }
 }
 
-func (x *User) validateEmailUniqueness() {
+func (x *User) ValidateEmailUniqueness() {
   count := 0
   if (x.Id.Int64 == 0) {
     db.
@@ -165,6 +160,7 @@ func (x *User) validateEmailUniqueness() {
 
   if (count > 0) {
     x.Errors = append(x.Errors, "That email address is already taken.")
+    x.ErrorMap["Email"] = true
   }
 }
 
@@ -202,18 +198,37 @@ func (x *User) SetPassword(password string) (err error) {
 func (x *User) CheckPassword(password string) (success bool, err error) {
 
   var saltedPassword bytes.Buffer
-  var cryptedPassword []byte
 
   saltedPassword.WriteString(password)
   saltedPassword.WriteString(x.Salt)
 
-  cryptedPassword, err = bcrypt.GenerateFromPassword(saltedPassword.Bytes(), 10)
-
-  if err != nil { return false, err }
-
-  err = bcrypt.CompareHashAndPassword(cryptedPassword, saltedPassword.Bytes())
+  err = bcrypt.CompareHashAndPassword([]byte(x.CryptedPassword), saltedPassword.Bytes())
 
   if err != nil { return false, err }
 
   return true, err
 }
+
+//////////////////////////////
+// OTHER /////////////////////
+
+func (x *UserAttrs) User() (*User) {
+  return &User{
+    NameFirst: x.NameFirst,
+    NameLast: x.NameLast,
+    Email: x.Email,
+    Password: x.Password,
+    PasswordConfirmation: x.PasswordConfirmation,
+    IosPushToken: x.IosPushToken,
+  }
+}
+
+func (x *User) UserAttrs() (UserAttrs) {
+  return UserAttrs{
+    NameFirst: x.NameFirst,
+    NameLast: x.NameLast,
+    Email: x.Email,
+    IosPushToken: x.IosPushToken,
+  }
+}
+

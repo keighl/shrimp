@@ -1,7 +1,6 @@
 package main
 
 import (
-  // "fmt"
   "os"
   "encoding/json"
   "github.com/go-martini/martini"
@@ -13,8 +12,10 @@ import (
   _ "github.com/go-sql-driver/mysql"
 )
 
-var db gorm.DB
-var conf *Configuration
+var  (
+  db gorm.DB
+  conf *Configuration
+)
 
 type Configuration struct {
   DBDriveSources string
@@ -24,13 +25,12 @@ type Configuration struct {
 /////////////////////////////
 
 func RouteHome(r render.Render, user *User) {
-  // Trigger a background job, just for fun
-  workers.Enqueue("dummyQueue", "Add", user.Id.Int64)
-
   data := &ApiData{User: user}
   r.JSON(200, ApiEnvelope{data})
   return
 }
+
+/////////////////////////////
 
 func main() {
 
@@ -54,7 +54,7 @@ func main() {
 
   m := NewMartiniServer()
 
-  ConfigureWorkerServer()
+  ConfigureWorkerServer(false)
   workers.Start()
 
   m.Run() // Blocks....
@@ -80,24 +80,10 @@ func NewMartiniServer() *martini.ClassicMartini {
 
   // Routes!!
   m.Get("/", RouteAuthorize, RouteHome)
-  m.Post("/login", binding.Bind(UserLoginAttrs{}), RouteLogin)
+  m.Post("/login", binding.Bind(UserAttrs{}), RouteLogin)
   m.Post("/users", binding.Bind(UserAttrs{}), RouteUserCreate)
   m.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
 
   return m
 }
 
-//////////////////////////////
-// ENVELOPE HELPERS //////////
-
-func error500Envelope() (ApiEnvelope) {
-  data := new(ApiData)
-  data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
-  return ApiEnvelope{data}
-}
-
-func error400Envelope(message string, details []string) (ApiEnvelope) {
-  data := new(ApiData)
-  data.ApiError = &ApiError{message, details}
-  return ApiEnvelope{data}
-}

@@ -35,11 +35,11 @@ ActiveRecord::Schema.define(:version => 20141013114700) do
   add_index "api_sessions", ["user_id"], :name => "index_api_sessions_on_user_id"
 
   create_table "users", :force => true do |t|
-    t.string   "salt"
-    t.string   "crypted_password"
     t.string   "email"
     t.string   "name_first"
     t.string   "name_last"
+    t.string   "crypted_password"
+    t.string   "salt"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "ios_push_token"
