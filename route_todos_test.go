@@ -7,6 +7,7 @@ import (
   "bytes"
   "encoding/json"
   "github.com/modocache/gory"
+  "github.com/jinzhu/gorm"
 )
 
 // INDEX ///////////////////
@@ -185,4 +186,6 @@ func Test_Route_Todos_Delete_Success(t *testing.T) {
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
   expect(t, recorder.Code, http.StatusOK)
+  err := db.Where("id = ?", todo.Id).First(todo).Error
+  expect(t, err, gorm.RecordNotFound)
 }
