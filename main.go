@@ -13,62 +13,55 @@ import (
 )
 
 var  (
+  config *Configuration
   db gorm.DB
-  conf *Configuration
+  server *martini.ClassicMartini
 )
 
 type Configuration struct {
   DBDriveSources string
-  Debug bool
-}
-
-/////////////////////////////
-
-func RouteHome(r render.Render, user *User) {
-  data := &ApiData{User: user, CurrentUser: user}
-  r.JSON(200, ApiEnvelope{data})
-  return
+  DBLoggingEnabled bool
+  ServerLoggingEnabled bool
+  WorkerServer string
+  WorkerDatabase string
+  WorkerPool string
+  WorkerProcess string
 }
 
 /////////////////////////////
 
 func main() {
-
-  var err error
-
-  conffile, err := os.Open("conf/app.json")
-  if err != nil { panic(err) }
-  decoder := json.NewDecoder(conffile)
-  conf = &Configuration{}
-  err = decoder.Decode(&conf)
-  if err != nil { panic(err) }
-  conffile.Close()
-
-  // e.g root:@tcp(localhost:3306)/shrimp_development?charset=utf8&parseTime=True
-  db, err = gorm.Open("mysql", conf.DBDriveSources)
-  if err != nil { panic(err) }
-  defer db.Close()
-  if (conf.Debug) {
-    db.LogMode(true)
-  }
-
-  m := NewMartiniServer()
-
-  ConfigureWorkerServer(false)
+  SetupApp("conf/app.json")
   workers.Start()
-
-  m.Run() // Blocks....
+  server.Run() // Blocks....
   workers.Quit()
+  db.Close()
 }
 
-////////////////////////////
+func SetupApp(confFile string) {
+  // CONFIG
+  file, _ := os.Open(confFile)
+  decoder := json.NewDecoder(file)
+  config = &Configuration{}
+  _ = decoder.Decode(config)
+  file.Close()
 
-func NewMartiniServer() *martini.ClassicMartini {
-  // Martini
-  m := martini.Classic()
+  // GORM
+  db, _ = gorm.Open("mysql", config.DBDriveSources)
+  db.LogMode(config.DBLoggingEnabled)
+
+  // MARTINI
+  router := martini.NewRouter()
+  mserver := martini.New()
+  if (config.ServerLoggingEnabled) { mserver.Use(martini.Logger()) }
+  mserver.Use(martini.Recovery())
+  mserver.MapTo(router, (*martini.Routes)(nil))
+  mserver.Action(router.Handle)
+
+  server = &martini.ClassicMartini{mserver, router}
 
   // CORS middleware
-  m.Use(cors.Allow(&cors.Options{
+  server.Use(cors.Allow(&cors.Options{
     AllowOrigins: []string{"*"},
     AllowMethods: []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"},
     AllowHeaders: []string{"*,x-requested-with,Content-Type,If-Modified-Since,If-None-Match"},
@@ -76,20 +69,28 @@ func NewMartiniServer() *martini.ClassicMartini {
   }))
 
   // Renderer middleware
-  m.Use(render.Renderer())
+  server.Use(render.Renderer())
 
   // Routes!!
-  m.Get("/", RouteAuthorize, RouteHome)
-  m.Post("/login", binding.Bind(UserAttrs{}), RouteLogin)
-  m.Post("/users", binding.Bind(UserAttrs{}), RouteUserCreate)
-  m.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
+  server.Get("/", RouteAuthorize, RouteUserMe)
+  server.Post("/login", binding.Bind(UserAttrs{}), RouteLogin)
+  server.Post("/users", binding.Bind(UserAttrs{}), RouteUserCreate)
 
-  m.Get("/todos", RouteAuthorize, RouteTodosIndex)
-  m.Post("/todos", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosCreate)
-  m.Get("/todos/:todo_id", RouteAuthorize, RouteTodosShow)
-  m.Put("/todos/:todo_id", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosUpdate)
-  // m.Delete("/todos/:todo_id", RouteAuthorize, RouteTodoDestroy)
+  server.Get("/me", RouteAuthorize, RouteUserMe)
+  server.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
 
-  return m
+  server.Get("/todos", RouteAuthorize, RouteTodosIndex)
+  server.Post("/todos", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosCreate)
+  server.Get("/todos/:todo_id", RouteAuthorize, RouteTodosShow)
+  server.Put("/todos/:todo_id", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosUpdate)
+  server.Delete("/todos/:todo_id", RouteAuthorize, RouteTodosDelete)
+
+  // WORKERS
+  workers.Configure(map[string]string{
+    "server": config.WorkerServer,
+    "database": config.WorkerDatabase,
+    "pool": config.WorkerPool,
+    "process": config.WorkerProcess,
+  })
 }
 

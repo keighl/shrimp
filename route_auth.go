@@ -29,7 +29,7 @@ func RouteAuthorize(c martini.Context, r render.Render, req *http.Request) {
     Scan(user).Error
 
   if (err != nil) {
-    r.JSON(401, Error400Envelope("Your token is invalid!", []string{}))
+    r.JSON(401, ApiErrorEnvelope("Your token is invalid!", []string{}))
     return
   }
 
@@ -47,14 +47,14 @@ func RouteLogin(r render.Render, attrs UserAttrs) {
   err = db.Where("email = ?", strings.TrimSpace(attrs.Email)).First(user).Error
 
   if (err != nil) {
-    r.JSON(401, Error400Envelope("Your email or password is invalid!", []string{}))
+    r.JSON(401, ApiErrorEnvelope("Your email or password is invalid!", []string{}))
     return
   }
 
   success, err = user.CheckPassword(strings.TrimSpace(attrs.Password))
 
   if (err != nil || !success) {
-    r.JSON(401, Error400Envelope("Your email or password is invalid!", []string{}))
+    r.JSON(401, ApiErrorEnvelope("Your email or password is invalid!", []string{}))
     return
   }
 
@@ -62,7 +62,7 @@ func RouteLogin(r render.Render, attrs UserAttrs) {
   err = db.Create(apiSession).Error
 
   if (err != nil) {
-    r.JSON(500, Error500Envelope())
+    r.JSON(500, Api500Envelope())
     return
   }
 

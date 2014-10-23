@@ -1,0 +1,9 @@
+{
+  "DBDriveSources" : "root:@tcp(localhost:3306)/DNAME?charset=utf8&parseTime=True",
+  "DBLoggingEnabled" : true,
+  "ServerLoggingEnabled" : true,
+  "WorkerServer": "localhost:6379",
+  "WorkerDatabase": "0",
+  "WorkerPool": "30",
+  "WorkerProcess": "1"
+}

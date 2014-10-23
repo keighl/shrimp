@@ -5,13 +5,10 @@ import (
   "testing"
   "net/http/httptest"
   "reflect"
-  "github.com/go-martini/martini"
-  "github.com/jinzhu/gorm"
   "github.com/modocache/gory"
 )
 
 var (
-  server *martini.ClassicMartini
   recorder *httptest.ResponseRecorder
   alreadySetup bool
   err error
@@ -19,23 +16,13 @@ var (
 
 // TODO find a library that does setup/tear down instead of this
 func setup(t *testing.T) {
-
   recorder = httptest.NewRecorder()
-
   if (alreadySetup) { return }
-
-  // TODO use Configuration file/object
-  db, err = gorm.Open("mysql", "root:@tcp(localhost:3306)/shrimp_test?charset=utf8&parseTime=True")
-  if err != nil { t.Error(err) }
-  db.LogMode(false)
+  SetupApp("conf/test.json")
   db.Exec("TRUNCATE TABLE users")
   db.Exec("TRUNCATE TABLE api_sessions")
   db.Exec("TRUNCATE TABLE todos")
-
   DefineFactories()
-  server = NewMartiniServer()
-  ConfigureWorkerServer(true)
-
   alreadySetup = true
 }
 

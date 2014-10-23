@@ -19,9 +19,22 @@ func Test_Route_Todos_Index_Unauthorized(t *testing.T) {
   expect(t, recorder.Code, http.StatusUnauthorized)
 }
 
-func Test_Route_Todos_Index_Success(t *testing.T) {
+func Test_Route_Todos_Index_Empty_Success(t *testing.T) {
   setup(t)
   _, apiSession := UserAndSession(t)
+  req, _ := http.NewRequest("GET", "/todos", nil)
+  req.Header.Set("Content-Type", "application/json")
+  req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
+  server.ServeHTTP(recorder, req)
+  expect(t, recorder.Code, http.StatusOK)
+}
+
+func Test_Route_Todos_Index_Success(t *testing.T) {
+  setup(t)
+  user, apiSession := UserAndSession(t)
+  todo := gory.Build("todo").(*Todo)
+  todo.UserId = user.Id
+  _ = db.Create(todo).Error
   req, _ := http.NewRequest("GET", "/todos", nil)
   req.Header.Set("Content-Type", "application/json")
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
@@ -54,8 +67,7 @@ func Test_Route_Todos_Show_Success(t *testing.T) {
   user, apiSession := UserAndSession(t)
   todo := gory.Build("todo").(*Todo)
   todo.UserId = user.Id
-  err := db.Create(todo).Error
-  if (err != nil) { t.Error(err) }
+  _ = db.Create(todo).Error
   req, _ := http.NewRequest("GET", fmt.Sprintf("/todos/%v", todo.Id), nil)
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
   req.Header.Set("Content-Type", "application/json")
@@ -119,8 +131,7 @@ func Test_Route_Todos_Update_Failure(t *testing.T) {
   user, apiSession := UserAndSession(t)
   todo := gory.Build("todo").(*Todo)
   todo.UserId = user.Id
-  err := db.Create(todo).Error
-  if (err != nil) { t.Error(err) }
+  _ = db.Create(todo).Error
   body, _ := json.Marshal(TodoAttrs{Title: "   "})
   req, _ := http.NewRequest("PUT", fmt.Sprintf("/todos/%v", todo.Id), bytes.NewReader(body))
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
@@ -134,10 +145,42 @@ func Test_Route_Todos_Update_Success(t *testing.T) {
   user, apiSession := UserAndSession(t)
   todo := gory.Build("todo").(*Todo)
   todo.UserId = user.Id
-  err := db.Create(todo).Error
-  if (err != nil) { t.Error(err) }
+  _ = db.Create(todo).Error
   body, _ := json.Marshal(TodoAttrs{Title: "HOTTTTTNESS"})
   req, _ := http.NewRequest("PUT", fmt.Sprintf("/todos/%d", todo.Id), bytes.NewReader(body))
+  req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
+  req.Header.Set("Content-Type", "application/json")
+  server.ServeHTTP(recorder, req)
+  expect(t, recorder.Code, http.StatusOK)
+}
+
+// DELETE ///////////////////
+
+func Test_Route_Todos_Delete_NotFound(t *testing.T) {
+  setup(t)
+  _, apiSession := UserAndSession(t)
+  req, _ := http.NewRequest("DELETE", "/todos/pppp", nil)
+  req.Header.Set("Content-Type", "application/json")
+  req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
+  server.ServeHTTP(recorder, req)
+  expect(t, recorder.Code, http.StatusNotFound)
+}
+
+func Test_Route_Todos_Delete_Unauthorized(t *testing.T) {
+  setup(t)
+  req, _ := http.NewRequest("DELETE", "/todos/12", nil)
+  req.Header.Set("Content-Type", "application/json")
+  server.ServeHTTP(recorder, req)
+  expect(t, recorder.Code, http.StatusUnauthorized)
+}
+
+func Test_Route_Todos_Delete_Success(t *testing.T) {
+  setup(t)
+  user, apiSession := UserAndSession(t)
+  todo := gory.Build("todo").(*Todo)
+  todo.UserId = user.Id
+  _ = db.Create(todo).Error
+  req, _ := http.NewRequest("DELETE", fmt.Sprintf("/todos/%d", todo.Id), nil)
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)

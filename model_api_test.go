@@ -2,6 +2,7 @@ package main
 
 import (
   "testing"
+  "reflect"
 )
 
 //////////////////////////////
@@ -25,3 +26,14 @@ func Test_ApiSession_Attrs(t *testing.T) {
   refute(t, session.SessionToken, "")
 }
 
+//////////////////////////////
+// API ENVELOPE //////////////
+
+func Test_Api500Envelope(t *testing.T) {
+  setup(t)
+  data := new(ApiData)
+  data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
+  targetByHand := ApiEnvelope{data}
+  targetByMethod := Api500Envelope()
+  expect(t, reflect.DeepEqual(targetByHand, targetByMethod), true)
+}

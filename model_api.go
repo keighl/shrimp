@@ -61,8 +61,17 @@ type ApiData struct {
   CurrentUser *User `json:"current_user,omitempty"`
   *ApiSession `json:"session,omitempty"`
   *ApiError `json:"error,omitempty"`
+  *ApiMessage `json:"message,omitempty"`
   *User `json:"user,omitempty"`
   *Todo `json:"todo,omitempty"`
+  Todos []Todo `json:"todos,omitempty"`
+}
+
+//////////////////////////////
+// API MESSAGE ///////////////
+
+type ApiMessage struct {
+  Message string `json:"message,omitempty"`
 }
 
 //////////////////////////////
@@ -80,15 +89,21 @@ type ApiEnvelope struct {
   *ApiData `json:"data,omitempty"`
 }
 
-func Error500Envelope() (ApiEnvelope) {
+func Api500Envelope() (ApiEnvelope) {
   data := new(ApiData)
   data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
   return ApiEnvelope{data}
 }
 
-func Error400Envelope(message string, details []string) (ApiEnvelope) {
+func ApiErrorEnvelope(message string, details []string) (ApiEnvelope) {
   data := new(ApiData)
   data.ApiError = &ApiError{message, details}
+  return ApiEnvelope{data}
+}
+
+func ApiMessageEnvelope(message string) (ApiEnvelope) {
+  data := new(ApiData)
+  data.ApiMessage = &ApiMessage{message}
   return ApiEnvelope{data}
 }
 

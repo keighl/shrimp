@@ -5,5 +5,7 @@ gin-bin
 db/config.yml
 conf/redis.conf
 conf/app.json
+conf/test.json
 httpclient
 *.rdb
+*.out

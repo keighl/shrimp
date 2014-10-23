@@ -12,9 +12,9 @@ func RouteUserCreate(r render.Render, attrs UserAttrs) {
 
   if (err != nil) {
     if (user.HasErrors()) {
-      r.JSON(400, Error400Envelope(err.Error(), user.Errors))
+      r.JSON(400, ApiErrorEnvelope(err.Error(), user.Errors))
     } else {
-      r.JSON(500, Error500Envelope())
+      r.JSON(500, Api500Envelope())
     }
     return
   }
@@ -23,7 +23,7 @@ func RouteUserCreate(r render.Render, attrs UserAttrs) {
   err = db.Create(&apiSession).Error
 
   if (err != nil) {
-    r.JSON(500, Error500Envelope())
+    r.JSON(500, Api500Envelope())
     return
   }
 
@@ -31,7 +31,10 @@ func RouteUserCreate(r render.Render, attrs UserAttrs) {
   r.JSON(201, ApiEnvelope{data})
 }
 
-/////////////////
+func RouteUserMe(r render.Render, user *User) {
+  data := &ApiData{User: user, CurrentUser: user}
+  r.JSON(200, ApiEnvelope{data})
+}
 
 func RouteUserUpdate(r render.Render, user *User, attrs UserAttrs) {
 
@@ -40,9 +43,9 @@ func RouteUserUpdate(r render.Render, user *User, attrs UserAttrs) {
 
   if (err != nil) {
     if (user.HasErrors()) {
-      r.JSON(400, Error400Envelope(err.Error(), user.Errors))
+      r.JSON(400, ApiErrorEnvelope(err.Error(), user.Errors))
     } else {
-      r.JSON(500, Error500Envelope())
+      r.JSON(500, Api500Envelope())
     }
     return
   }
