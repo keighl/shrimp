@@ -29,10 +29,14 @@ type TodoAttrs struct {
 //////////////////////////////
 // CALLBACKS /////////////////
 
+func (x *Todo) BeforeCreate() (err error) {
+  x.CreatedAt = time.Now()
+  return
+}
+
 func (x *Todo) BeforeSave() (err error) {
   x.Errors    = []string{}
   x.ErrorMap  = map[string]bool{}
-  x.CreatedAt = time.Now()
   x.UpdatedAt = time.Now()
 
   x.Trimspace()

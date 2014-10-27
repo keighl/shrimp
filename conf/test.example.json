@@ -5,5 +5,6 @@
   "WorkerServer": "localhost:6379",
   "WorkerDatabase": "15",
   "WorkerPool": "30",
-  "WorkerProcess": "1"
+  "WorkerProcess": "1",
+  "MandrillAPIKey": "XXXXXXXXX"
 }

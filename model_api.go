@@ -64,6 +64,7 @@ type ApiData struct {
   *ApiMessage `json:"message,omitempty"`
   *User `json:"user,omitempty"`
   *Todo `json:"todo,omitempty"`
+  *PasswordReset `json:"password_reset,omitempty"`
   Todos []Todo `json:"todos,omitempty"`
 }
 

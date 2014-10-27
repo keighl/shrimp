@@ -6,24 +6,41 @@ import (
   "net/http/httptest"
   "reflect"
   "github.com/modocache/gory"
+  "github.com/keighl/mandrill"
+  "github.com/go-martini/martini"
+  "github.com/jrallison/go-workers"
 )
 
 var (
-  recorder *httptest.ResponseRecorder
   alreadySetup bool
   err error
 )
 
 // TODO find a library that does setup/tear down instead of this
 func setup(t *testing.T) {
-  recorder = httptest.NewRecorder()
   if (alreadySetup) { return }
-  SetupApp("conf/test.json")
+
+  config = ConfigForFile("conf/test.json")
+  db     = DBForConfig(config)
+
+  workers.Configure(map[string]string{
+    "server": config.WorkerServer,
+    "database": config.WorkerDatabase,
+    "pool": config.WorkerPool,
+    "process": config.WorkerProcess,
+  })
+
   db.Exec("TRUNCATE TABLE users")
   db.Exec("TRUNCATE TABLE api_sessions")
   db.Exec("TRUNCATE TABLE todos")
+  db.Exec("TRUNCATE TABLE password_resets")
   DefineFactories()
   alreadySetup = true
+}
+
+func testTools(t *testing.T) (*martini.ClassicMartini, *httptest.ResponseRecorder) {
+  setup(t)
+  return martiniServer(false), httptest.NewRecorder()
 }
 
 func DefineFactories() {
@@ -73,7 +90,15 @@ func DefineFactories() {
   })
 }
 
-// TODO try our testify for these kinds of helpers
+func MockMailerTrue(c martini.Context) {
+  c.Map(SendEmail(func (message *mandrill.Message)(bool) { return true }))
+}
+
+func MockMailerFalse(c martini.Context) {
+  c.Map(SendEmail(func (message *mandrill.Message)(bool) { return false }))
+}
+
+
 func expect(t *testing.T, a interface{}, b interface{}) {
   if a != b {
     t.Errorf("Expected %v (type %v) - Got %v (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))

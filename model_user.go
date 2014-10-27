@@ -8,7 +8,6 @@ import (
   "errors"
   "regexp"
   "strings"
-  _ "database/sql"
 )
 
 type User struct {
@@ -234,3 +233,6 @@ func (x *User) UserAttrs() (*UserAttrs) {
   }
 }
 
+func (x *User) FullName() string {
+  return x.NameFirst + " " + x.NameLast
+}
