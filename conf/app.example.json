@@ -1,4 +1,6 @@
 {
+  "AppName": "Goilerplate",
+  "BaseURL": "http://localhost:3000/",
   "DBDriveSources" : "root:@tcp(localhost:3306)/DNAME?charset=utf8&parseTime=True",
   "DBLoggingEnabled" : true,
   "ServerLoggingEnabled" : true,

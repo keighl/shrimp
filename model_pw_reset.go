@@ -12,7 +12,7 @@ type PasswordReset struct {
   Id int64 `json:"-"`
   CreatedAt time.Time `json:"-"`
   UpdatedAt time.Time `json:"-"`
-  Token string `json:"token"`
+  Token string `json:"-"`
   UserId int64 `json:"-"`
   Active bool `json:"-"`
   ExpiresAt time.Time `json:"expires_at"`

@@ -20,6 +20,8 @@ var  (
 )
 
 type Configuration struct {
+  AppName string
+  BaseURL string
   DBDriveSources string
   DBLoggingEnabled bool
   ServerLoggingEnabled bool
@@ -97,6 +99,7 @@ func setupServerRoutes(*martini.ClassicMartini) {
   server.Put("/todos/:todo_id", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosUpdate)
   server.Delete("/todos/:todo_id", RouteAuthorize, RouteTodosDelete)
   server.Post("/password-reset", binding.Bind(PasswordResetAttrs{}), Mailer, RoutePasswordResetCreate)
+  server.Post("/password-reset/:token", binding.Bind(UserAttrs{}), RoutePasswordResetUpdate)
 }
 
 // MAILER INJECTION /////////////
