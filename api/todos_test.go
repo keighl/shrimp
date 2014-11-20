@@ -1,6 +1,7 @@
-package main
+package api
 
 import (
+  "shrimp/models"
   "fmt"
   "net/http"
   "testing"
@@ -15,7 +16,7 @@ import (
 
 func Test_Route_Todos_Index_Unauthorized(t *testing.T) {
   server, recorder := testTools(t)
-  server.Get("/todos", RouteAuthorize, RouteTodosIndex)
+  server.Get("/todos", Authorize, TodosIndex)
   req, _ := http.NewRequest("GET", "/todos", nil)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
@@ -24,7 +25,7 @@ func Test_Route_Todos_Index_Unauthorized(t *testing.T) {
 
 func Test_Route_Todos_Index_Empty_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Get("/todos", RouteAuthorize, RouteTodosIndex)
+  server.Get("/todos", Authorize, TodosIndex)
   _, apiSession := UserAndSession(t)
   req, _ := http.NewRequest("GET", "/todos", nil)
   req.Header.Set("Content-Type", "application/json")
@@ -35,11 +36,11 @@ func Test_Route_Todos_Index_Empty_Success(t *testing.T) {
 
 func Test_Route_Todos_Index_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Get("/todos", RouteAuthorize, RouteTodosIndex)
+  server.Get("/todos", Authorize, TodosIndex)
   user, apiSession := UserAndSession(t)
-  todo := gory.Build("todo").(*Todo)
+  todo := gory.Build("todo").(*models.Todo)
   todo.UserId = user.Id
-  _ = db.Create(todo).Error
+  _ = DB.Create(todo).Error
   req, _ := http.NewRequest("GET", "/todos", nil)
   req.Header.Set("Content-Type", "application/json")
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
@@ -51,7 +52,7 @@ func Test_Route_Todos_Index_Success(t *testing.T) {
 
 func Test_Route_Todos_Show_NotFound(t *testing.T) {
   server, recorder := testTools(t)
-  server.Get("/todos/:todo_id", RouteAuthorize, RouteTodosShow)
+  server.Get("/todos/:todo_id", Authorize, TodosShow)
   _, apiSession := UserAndSession(t)
   req, _ := http.NewRequest("GET", "/todos/pppp", nil)
   req.Header.Set("Content-Type", "application/json")
@@ -62,7 +63,7 @@ func Test_Route_Todos_Show_NotFound(t *testing.T) {
 
 func Test_Route_Todos_Show_Unauthorized(t *testing.T) {
   server, recorder := testTools(t)
-  server.Get("/todos/:todo_id", RouteAuthorize, RouteTodosShow)
+  server.Get("/todos/:todo_id", Authorize, TodosShow)
   req, _ := http.NewRequest("GET", "/todos/12", nil)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
@@ -71,11 +72,11 @@ func Test_Route_Todos_Show_Unauthorized(t *testing.T) {
 
 func Test_Route_Todos_Show_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Get("/todos/:todo_id", RouteAuthorize, RouteTodosShow)
+  server.Get("/todos/:todo_id", Authorize, TodosShow)
   user, apiSession := UserAndSession(t)
-  todo := gory.Build("todo").(*Todo)
+  todo := gory.Build("todo").(*models.Todo)
   todo.UserId = user.Id
-  _ = db.Create(todo).Error
+  _ = DB.Create(todo).Error
   req, _ := http.NewRequest("GET", fmt.Sprintf("/todos/%v", todo.Id), nil)
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
   req.Header.Set("Content-Type", "application/json")
@@ -87,7 +88,7 @@ func Test_Route_Todos_Show_Success(t *testing.T) {
 
 func Test_Route_Todos_Create_Unauthorized(t *testing.T) {
   server, recorder := testTools(t)
-  server.Post("/todos", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosCreate)
+  server.Post("/todos", Authorize, binding.Bind(models.TodoAttrs{}), TodosCreate)
   req, _ := http.NewRequest("POST", "/todos", nil)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
@@ -96,7 +97,7 @@ func Test_Route_Todos_Create_Unauthorized(t *testing.T) {
 
 func Test_Route_Todos_Create_Failure(t *testing.T) {
   server, recorder := testTools(t)
-  server.Post("/todos", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosCreate)
+  server.Post("/todos", Authorize, binding.Bind(models.TodoAttrs{}), TodosCreate)
   _, apiSession := UserAndSession(t)
   req, _ := http.NewRequest("POST", "/todos", nil)
   req.Header.Set("Content-Type", "application/json")
@@ -107,7 +108,7 @@ func Test_Route_Todos_Create_Failure(t *testing.T) {
 
 func Test_Route_Todos_Create_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Post("/todos", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosCreate)
+  server.Post("/todos", Authorize, binding.Bind(models.TodoAttrs{}), TodosCreate)
   _, apiSession := UserAndSession(t)
   body, _ := json.Marshal(gory.Build("todoAttrs"))
   req, _ := http.NewRequest("POST", "/todos", bytes.NewReader(body))
@@ -121,7 +122,7 @@ func Test_Route_Todos_Create_Success(t *testing.T) {
 
 func Test_Route_Todos_Update_NotFound(t *testing.T) {
   server, recorder := testTools(t)
-  server.Put("/todos/:todo_id", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosUpdate)
+  server.Put("/todos/:todo_id", Authorize, binding.Bind(models.TodoAttrs{}), TodosUpdate)
   _, apiSession := UserAndSession(t)
   req, _ := http.NewRequest("PUT", "/todos/pppp", nil)
   req.Header.Set("Content-Type", "application/json")
@@ -132,7 +133,7 @@ func Test_Route_Todos_Update_NotFound(t *testing.T) {
 
 func Test_Route_Todos_Update_Unauthorized(t *testing.T) {
   server, recorder := testTools(t)
-  server.Put("/todos/:todo_id", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosUpdate)
+  server.Put("/todos/:todo_id", Authorize, binding.Bind(models.TodoAttrs{}), TodosUpdate)
   req, _ := http.NewRequest("PUT", "/todos/12", nil)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
@@ -141,12 +142,12 @@ func Test_Route_Todos_Update_Unauthorized(t *testing.T) {
 
 func Test_Route_Todos_Update_Failure(t *testing.T) {
   server, recorder := testTools(t)
-  server.Put("/todos/:todo_id", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosUpdate)
+  server.Put("/todos/:todo_id", Authorize, binding.Bind(models.TodoAttrs{}), TodosUpdate)
   user, apiSession := UserAndSession(t)
-  todo := gory.Build("todo").(*Todo)
+  todo := gory.Build("todo").(*models.Todo)
   todo.UserId = user.Id
-  _ = db.Create(todo).Error
-  body, _ := json.Marshal(TodoAttrs{Title: "   "})
+  _ = DB.Create(todo).Error
+  body, _ := json.Marshal(models.TodoAttrs{Title: "   "})
   req, _ := http.NewRequest("PUT", fmt.Sprintf("/todos/%v", todo.Id), bytes.NewReader(body))
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
   req.Header.Set("Content-Type", "application/json")
@@ -156,12 +157,12 @@ func Test_Route_Todos_Update_Failure(t *testing.T) {
 
 func Test_Route_Todos_Update_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Put("/todos/:todo_id", RouteAuthorize, binding.Bind(TodoAttrs{}), RouteTodosUpdate)
+  server.Put("/todos/:todo_id", Authorize, binding.Bind(models.TodoAttrs{}), TodosUpdate)
   user, apiSession := UserAndSession(t)
-  todo := gory.Build("todo").(*Todo)
+  todo := gory.Build("todo").(*models.Todo)
   todo.UserId = user.Id
-  _ = db.Create(todo).Error
-  body, _ := json.Marshal(TodoAttrs{Title: "HOTTTTTNESS"})
+  _ = DB.Create(todo).Error
+  body, _ := json.Marshal(models.TodoAttrs{Title: "HOTTTTTNESS"})
   req, _ := http.NewRequest("PUT", fmt.Sprintf("/todos/%d", todo.Id), bytes.NewReader(body))
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
   req.Header.Set("Content-Type", "application/json")
@@ -173,7 +174,7 @@ func Test_Route_Todos_Update_Success(t *testing.T) {
 
 func Test_Route_Todos_Delete_NotFound(t *testing.T) {
   server, recorder := testTools(t)
-  server.Delete("/todos/:todo_id", RouteAuthorize, RouteTodosDelete)
+  server.Delete("/todos/:todo_id", Authorize, TodosDelete)
   _, apiSession := UserAndSession(t)
   req, _ := http.NewRequest("DELETE", "/todos/pppp", nil)
   req.Header.Set("Content-Type", "application/json")
@@ -184,7 +185,7 @@ func Test_Route_Todos_Delete_NotFound(t *testing.T) {
 
 func Test_Route_Todos_Delete_Unauthorized(t *testing.T) {
   server, recorder := testTools(t)
-  server.Delete("/todos/:todo_id", RouteAuthorize, RouteTodosDelete)
+  server.Delete("/todos/:todo_id", Authorize, TodosDelete)
   req, _ := http.NewRequest("DELETE", "/todos/12", nil)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
@@ -193,16 +194,16 @@ func Test_Route_Todos_Delete_Unauthorized(t *testing.T) {
 
 func Test_Route_Todos_Delete_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Delete("/todos/:todo_id", RouteAuthorize, RouteTodosDelete)
+  server.Delete("/todos/:todo_id", Authorize, TodosDelete)
   user, apiSession := UserAndSession(t)
-  todo := gory.Build("todo").(*Todo)
+  todo := gory.Build("todo").(*models.Todo)
   todo.UserId = user.Id
-  _ = db.Create(todo).Error
+  _ = DB.Create(todo).Error
   req, _ := http.NewRequest("DELETE", fmt.Sprintf("/todos/%d", todo.Id), nil)
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
   expect(t, recorder.Code, http.StatusOK)
-  err := db.Where("id = ?", todo.Id).First(todo).Error
+  err := DB.Where("id = ?", todo.Id).First(todo).Error
   expect(t, err, gorm.RecordNotFound)
 }

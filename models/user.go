@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
   "time"
@@ -145,12 +145,12 @@ func (x *User) ValidateEmail() {
 func (x *User) ValidateEmailUniqueness() {
   count := 0
   if (x.Id == 0) {
-    db.
+    DB.
       Model(&User{}).
       Where("email = ?", strings.TrimSpace(x.Email)).
       Count(&count)
   } else {
-    db.
+    DB.
       Model(&User{}).
       Where("email = ?", strings.TrimSpace(x.Email)).
       Not([]int64{x.Id}).

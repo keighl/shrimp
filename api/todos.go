@@ -1,14 +1,15 @@
-package main
+package api
 
 import (
+  "shrimp/models"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/render"
   "github.com/jinzhu/gorm"
 )
 
-func RouteTodosIndex(r render.Render, user *User) {
-  todos := []Todo{}
-  err := db.Where("user_id = ?", user.Id).Find(&todos).Error
+func TodosIndex(r render.Render, user *models.User) {
+  todos := []models.Todo{}
+  err := DB.Where("user_id = ?", user.Id).Find(&todos).Error
 
   if (err != nil) {
     if (err != gorm.RecordNotFound) {
@@ -21,9 +22,9 @@ func RouteTodosIndex(r render.Render, user *User) {
   r.JSON(200, ApiEnvelope{data})
 }
 
-func RouteTodosShow(params martini.Params, r render.Render, user *User) {
-  todo := &Todo{}
-  err := db.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
+func TodosShow(params martini.Params, r render.Render, user *models.User) {
+  todo := &models.Todo{}
+  err := DB.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
 
   if (err != nil) {
     r.JSON(404, ApiMessageEnvelope("Record not found"))
@@ -34,10 +35,10 @@ func RouteTodosShow(params martini.Params, r render.Render, user *User) {
   r.JSON(200, ApiEnvelope{data})
 }
 
-func RouteTodosCreate(r render.Render, user *User, attrs TodoAttrs) {
+func TodosCreate(r render.Render, user *models.User, attrs models.TodoAttrs) {
   todo := attrs.Todo()
   todo.UserId = user.Id
-  err := db.Create(todo).Error
+  err := DB.Create(todo).Error
 
   if (err != nil) {
     if (todo.HasErrors()) {
@@ -52,16 +53,16 @@ func RouteTodosCreate(r render.Render, user *User, attrs TodoAttrs) {
   r.JSON(201, ApiEnvelope{data})
 }
 
-func RouteTodosUpdate(params martini.Params, r render.Render, user *User, attrs TodoAttrs) {
-  todo := &Todo{}
-  err := db.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
+func TodosUpdate(params martini.Params, r render.Render, user *models.User, attrs models.TodoAttrs) {
+  todo := &models.Todo{}
+  err := DB.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
 
   if (err != nil) {
     r.JSON(404, ApiMessageEnvelope("Record not found"))
     return
   }
 
-  err = db.Model(todo).Updates(attrs).Error
+  err = DB.Model(todo).Updates(attrs).Error
 
   if (err != nil) {
     if (todo.HasErrors()) {
@@ -76,16 +77,16 @@ func RouteTodosUpdate(params martini.Params, r render.Render, user *User, attrs 
   r.JSON(200, ApiEnvelope{data})
 }
 
-func RouteTodosDelete(params martini.Params, r render.Render, user *User) {
-  todo := &Todo{}
-  err := db.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
+func TodosDelete(params martini.Params, r render.Render, user *models.User) {
+  todo := &models.Todo{}
+  err := DB.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
 
   if (err != nil) {
     r.JSON(404, ApiMessageEnvelope("Record not found"))
     return
   }
 
-  err = db.Delete(todo).Error
+  err = DB.Delete(todo).Error
 
   if (err != nil) {
     r.JSON(400, ApiMessageEnvelope("Couldn't delete the item"))

@@ -1,6 +1,7 @@
-package main
+package api
 
 import (
+  "shrimp/models"
   "net/http"
   "testing"
   "bytes"
@@ -13,7 +14,7 @@ import (
 
 func Test_Route_Users_Create_Failure(t *testing.T) {
   server, recorder := testTools(t)
-  server.Post("/users", binding.Bind(UserAttrs{}), RouteUserCreate)
+  server.Post("/users", binding.Bind(models.UserAttrs{}), UserCreate)
   req, _ := http.NewRequest("POST", "/users", nil)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
@@ -22,7 +23,7 @@ func Test_Route_Users_Create_Failure(t *testing.T) {
 
 func Test_Route_Users_Create_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Post("/users", binding.Bind(UserAttrs{}), RouteUserCreate)
+  server.Post("/users", binding.Bind(models.UserAttrs{}), UserCreate)
   body, _ := json.Marshal(gory.Build("userAttrs"))
   req, _ := http.NewRequest("POST", "/users", bytes.NewReader(body))
   req.Header.Set("Content-Type", "application/json")
@@ -34,7 +35,7 @@ func Test_Route_Users_Create_Success(t *testing.T) {
 
 func Test_Route_Users_Me_Unauthorized(t *testing.T) {
   server, recorder := testTools(t)
-  server.Get("/me", RouteAuthorize, RouteUserMe)
+  server.Get("/me", Authorize, UserMe)
   req, _ := http.NewRequest("GET", "/me", nil)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
@@ -43,7 +44,7 @@ func Test_Route_Users_Me_Unauthorized(t *testing.T) {
 
 func Test_Route_Users_Me_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Get("/me", RouteAuthorize, RouteUserMe)
+  server.Get("/me", Authorize, UserMe)
   _, apiSession := UserAndSession(t)
   req, _ := http.NewRequest("GET", "/me", nil)
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
@@ -56,7 +57,7 @@ func Test_Route_Users_Me_Success(t *testing.T) {
 
 func Test_Route_Users_Update_Unauthorized(t *testing.T) {
   server, recorder := testTools(t)
-  server.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
+  server.Put("/me", Authorize, binding.Bind(models.UserAttrs{}), UserUpdate)
   req, _ := http.NewRequest("PUT", "/me", nil)
   req.Header.Set("Content-Type", "application/json")
   server.ServeHTTP(recorder, req)
@@ -65,9 +66,9 @@ func Test_Route_Users_Update_Unauthorized(t *testing.T) {
 
 func Test_Route_Users_Update_Failure(t *testing.T) {
   server, recorder := testTools(t)
-  server.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
+  server.Put("/me", Authorize, binding.Bind(models.UserAttrs{}), UserUpdate)
   _, apiSession := UserAndSession(t)
-  body, _ := json.Marshal(UserAttrs{Email: "cheese"})
+  body, _ := json.Marshal(models.UserAttrs{Email: "cheese"})
   req, _ := http.NewRequest("PUT", "/me", bytes.NewReader(body))
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
   req.Header.Set("Content-Type", "application/json")
@@ -77,9 +78,9 @@ func Test_Route_Users_Update_Failure(t *testing.T) {
 
 func Test_Route_Users_Update_Success(t *testing.T) {
   server, recorder := testTools(t)
-  server.Put("/me", RouteAuthorize, binding.Bind(UserAttrs{}), RouteUserUpdate)
+  server.Put("/me", Authorize, binding.Bind(models.UserAttrs{}), UserUpdate)
   user, apiSession := UserAndSession(t)
-  body, _ := json.Marshal(user.UserAttrs)
+  body, _ := json.Marshal(user.UserAttrs())
   req, _ := http.NewRequest("PUT", "/me", bytes.NewReader(body))
   req.Header.Set("X-SESSION-TOKEN", apiSession.SessionToken)
   req.Header.Set("Content-Type", "application/json")

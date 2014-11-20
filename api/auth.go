@@ -1,6 +1,8 @@
-package main
+package api
 
 import (
+  "shrimp/models"
+  _ "shrimp/utils"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/render"
   "net/http"
@@ -9,7 +11,8 @@ import (
 
 /////////////////////////////
 
-func RouteAuthorize(c martini.Context, r render.Render, req *http.Request) {
+func Authorize(c martini.Context, r render.Render, req *http.Request) {
+
   var err error
   var sessionToken string
 
@@ -18,9 +21,9 @@ func RouteAuthorize(c martini.Context, r render.Render, req *http.Request) {
     sessionToken = req.URL.Query().Get("session_token")
   }
 
-  user := &User{}
+  user := &models.User{}
 
-  err = db.
+  err = DB.
     Table("users").
     Select("users.*").
     Joins("INNER JOIN api_sessions x on x.user_id = users.id").
@@ -38,13 +41,13 @@ func RouteAuthorize(c martini.Context, r render.Render, req *http.Request) {
 
 /////////////////////////////
 
-func RouteLogin(r render.Render, attrs UserAttrs) {
+func Login(r render.Render, attrs models.UserAttrs) {
 
   var err error
   var success bool
-  user := &User{}
+  user := &models.User{}
 
-  err = db.Where("email = ?", strings.TrimSpace(attrs.Email)).First(user).Error
+  err = DB.Where("email = ?", strings.TrimSpace(attrs.Email)).First(user).Error
 
   if (err != nil) {
     r.JSON(401, ApiErrorEnvelope("Your email or password is invalid!", []string{}))
@@ -58,8 +61,8 @@ func RouteLogin(r render.Render, attrs UserAttrs) {
     return
   }
 
-  apiSession := &ApiSession{ UserId: user.Id}
-  err = db.Create(apiSession).Error
+  apiSession := &models.ApiSession{ UserId: user.Id}
+  err = DB.Create(apiSession).Error
 
   if (err != nil) {
     r.JSON(500, Api500Envelope())

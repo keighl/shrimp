@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
   "testing"
@@ -10,11 +10,11 @@ func Test_Todo_Name_Presence(t *testing.T) {
   setup(t)
   todo := gory.Build("todo").(*Todo)
   todo.Title = ""
-  err := db.Create(todo).Error
+  err := DB.Create(todo).Error
   refute(t, err, nil)
   expect(t, todo.ErrorMap["Title"], true)
   todo.Title = "TOOOODOOOO"
-  err = db.Create(todo).Error
+  err = DB.Create(todo).Error
   expect(t, err, nil)
 }
 
