@@ -13,27 +13,6 @@
 
 ActiveRecord::Schema.define(:version => 20141027193434) do
 
-  create_table "api_clients", :force => true do |t|
-    t.string   "client_id"
-    t.string   "client_secret"
-    t.string   "name"
-    t.datetime "created_at",    :null => false
-    t.datetime "updated_at",    :null => false
-  end
-
-  add_index "api_clients", ["client_id"], :name => "index_api_clients_on_client_id"
-
-  create_table "api_sessions", :force => true do |t|
-    t.integer  "user_id"
-    t.integer  "api_client_id"
-    t.string   "session_token"
-    t.datetime "created_at",    :null => false
-    t.datetime "updated_at",    :null => false
-  end
-
-  add_index "api_sessions", ["session_token"], :name => "index_api_sessions_on_session_token"
-  add_index "api_sessions", ["user_id"], :name => "index_api_sessions_on_user_id"
-
   create_table "password_resets", :force => true do |t|
     t.string   "token"
     t.integer  "user_id"
@@ -53,6 +32,8 @@ ActiveRecord::Schema.define(:version => 20141027193434) do
     t.datetime "updated_at"
   end
 
+  add_index "todos", ["id", "user_id"], :name => "index_todos_on_id_and_user_id"
+
   create_table "users", :force => true do |t|
     t.string   "email"
     t.string   "name_first"
@@ -61,6 +42,7 @@ ActiveRecord::Schema.define(:version => 20141027193434) do
     t.string   "salt"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.string   "api_token"
     t.string   "ios_push_token"
   end
 

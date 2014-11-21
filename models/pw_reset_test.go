@@ -7,7 +7,7 @@ import (
 
 func Test_PasswordReset(t *testing.T) {
   setup(t)
-  user, _ := UserAndSession(t)
+  user := Uzer(t)
   pws := &PasswordReset{}
   pws.UserId = user.Id
   err := DB.Create(pws).Error
@@ -24,7 +24,7 @@ func Test_PasswordReset_RequiresUserId(t *testing.T) {
 
 func Test_PasswordReset_SetsExpiresActive(t *testing.T) {
   setup(t)
-  user, _ := UserAndSession(t)
+  user := Uzer(t)
   pws := &PasswordReset{}
   pws.UserId = user.Id
   err := DB.Create(pws).Error
@@ -35,7 +35,7 @@ func Test_PasswordReset_SetsExpiresActive(t *testing.T) {
 
 func Test_PasswordReset_SetsToken(t *testing.T) {
   setup(t)
-  user, _ := UserAndSession(t)
+  user := Uzer(t)
   pws := &PasswordReset{}
   pws.UserId = user.Id
   err := DB.Create(pws).Error

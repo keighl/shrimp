@@ -20,15 +20,7 @@ func UserCreate(r render.Render, attrs models.UserAttrs) {
     return
   }
 
-  apiSession := models.ApiSession{UserId: user.Id}
-  err = DB.Create(&apiSession).Error
-
-  if (err != nil) {
-    r.JSON(500, Api500Envelope())
-    return
-  }
-
-  data := &ApiData{User: user, ApiSession: &apiSession, CurrentUser: user}
+  data := &ApiData{User: user, CurrentUser: user, ApiToken: user.ApiToken}
   r.JSON(201, ApiEnvelope{data})
 }
 

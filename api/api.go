@@ -18,7 +18,7 @@ var  (
 
 type ApiData struct {
   CurrentUser *models.User `json:"current_user,omitempty"`
-  *models.ApiSession `json:"session,omitempty"`
+  ApiToken string `json:"api_token,omitempty"`
   *ApiError `json:"error,omitempty"`
   *ApiMessage `json:"message,omitempty"`
   *models.User `json:"user,omitempty"`

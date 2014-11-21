@@ -24,6 +24,7 @@ type User struct {
   Password string `json:"-" sql:"-"`
   PasswordConfirmation string `json:"-" sql:"-"`
   IosPushToken string `json:"-"`
+  ApiToken string `json:"-"`
 }
 
 func (x User) TableName() string {
@@ -57,6 +58,8 @@ func (x *User) BeforeSave() (err error) {
 }
 
 func (x *User) BeforeCreate() (err error) {
+
+  x.ApiToken = uniuri.NewLen(30)
 
   if (x.Password != "") {
     if (x.validatePasswordAndConfirmation()) {

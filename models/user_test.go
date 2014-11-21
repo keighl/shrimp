@@ -107,7 +107,7 @@ func Test_User_Create_Requires_Password(t *testing.T) {
 
 func Test_User_Update_Optional_Password(t *testing.T) {
   setup(t)
-  user, _ := UserAndSession(t)
+  user := Uzer(t)
   user.Password = ""
   user.NameLast = "Cheese"
   err := DB.Save(user).Error

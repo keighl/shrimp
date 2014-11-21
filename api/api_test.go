@@ -32,7 +32,6 @@ func setup(t *testing.T) {
   // })
 
   DB.Exec("TRUNCATE TABLE users")
-  DB.Exec("TRUNCATE TABLE api_sessions")
   DB.Exec("TRUNCATE TABLE todos")
   DB.Exec("TRUNCATE TABLE password_resets")
   models.DefineFactories()
@@ -58,21 +57,16 @@ func refute(t *testing.T, a interface{}, b interface{}) {
 
 var (
   uzer *models.User // memoized user
-  apiSezzion *models.ApiSession // memoized apiSession
 )
 
-func UserAndSession(t *testing.T) (*models.User, *models.ApiSession) {
-  if (uzer != nil) { return uzer, apiSezzion }
+func Uzer(t *testing.T) (*models.User) {
+  if (uzer != nil) { return uzer }
 
   uzer = gory.Build("user").(*models.User)
   err = DB.Create(uzer).Error
   if (err != nil) { t.Error(err) }
 
-  apiSezzion = &models.ApiSession{ UserId: uzer.Id }
-  err = DB.Create(apiSezzion).Error
-  if (err != nil) { t.Error(err) }
-
-  return uzer, apiSezzion
+  return uzer
 }
 
 func MockMailerTrue(c martini.Context) {

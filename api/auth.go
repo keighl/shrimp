@@ -2,7 +2,6 @@ package api
 
 import (
   "shrimp/models"
-  _ "shrimp/utils"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/render"
   "net/http"
@@ -13,29 +12,20 @@ import (
 
 func Authorize(c martini.Context, r render.Render, req *http.Request) {
 
-  var err error
-  var sessionToken string
+  var token string
 
-  sessionToken = req.Header.Get("X-SESSION-TOKEN")
-  if (sessionToken == "") {
-    sessionToken = req.URL.Query().Get("session_token")
+  token = req.Header.Get("X-API-TOKEN")
+  if (token == "") {
+    token = req.URL.Query().Get("api-token")
   }
 
   user := &models.User{}
-
-  err = DB.
-    Table("users").
-    Select("users.*").
-    Joins("INNER JOIN api_sessions x on x.user_id = users.id").
-    Where("session_token = ?", strings.TrimSpace(sessionToken)).
-    Limit(1).
-    Scan(user).Error
+  err := DB.Where("api_token = ?", token).First(user).Error
 
   if (err != nil) {
     r.JSON(401, ApiErrorEnvelope("Your token is invalid!", []string{}))
     return
   }
-
   c.Map(user) // Map the user to be used in the route
 }
 
@@ -61,14 +51,6 @@ func Login(r render.Render, attrs models.UserAttrs) {
     return
   }
 
-  apiSession := &models.ApiSession{ UserId: user.Id}
-  err = DB.Create(apiSession).Error
-
-  if (err != nil) {
-    r.JSON(500, Api500Envelope())
-    return
-  }
-
-  data := &ApiData{ApiSession: apiSession}
+  data := &ApiData{ApiToken: user.ApiToken}
   r.JSON(200, ApiEnvelope{data})
 }

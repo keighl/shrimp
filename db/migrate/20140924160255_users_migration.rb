@@ -8,6 +8,9 @@ class UsersMigration < ActiveRecord::Migration
       t.string :salt
       t.datetime :created_at
       t.datetime :updated_at
+      t.string :api_token
     end
+
+    add_index :users, :api_token
   end
 end
