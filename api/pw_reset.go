@@ -41,7 +41,7 @@ func PasswordResetCreate(r render.Render, attrs models.PasswordResetAttrs, sendE
   }
 
   data := &ApiData{PasswordReset: pwr}
-  r.JSON(201, ApiEnvelope{data})
+  r.JSON(201, data)
 }
 
 func PasswordResetUpdate(params martini.Params, r render.Render, attrs models.UserAttrs) {

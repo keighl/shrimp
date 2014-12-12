@@ -53,7 +53,7 @@ func MartiniServer(logginEnabled bool) (*martini.ClassicMartini) {
   s.Use(cors.Allow(&cors.Options{
     AllowOrigins: []string{"*"},
     AllowMethods: []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"},
-    AllowHeaders: []string{"*,x-requested-with,Content-Type,If-Modified-Since,If-None-Match"},
+    AllowHeaders: []string{"*", "x-requested-with", "Content-Type", "If-Modified-Since", "If-None-Match", "X-API-TOKEN"},
     ExposeHeaders: []string{"Content-Length"},
   }))
   return s

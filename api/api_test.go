@@ -9,6 +9,7 @@ import (
   _ "github.com/jrallison/go-workers"
   "github.com/modocache/gory"
   "reflect"
+
   "github.com/keighl/mandrill"
 )
 
@@ -21,7 +22,7 @@ var (
 func setup(t *testing.T) {
   if (alreadySetup) { return }
 
-  Config    = utils.ConfigForFile("../conf/test.json")
+  Config    = utils.ConfigForFile("../config/test.json")
   DB        = utils.DBForConfig(Config)
   models.DB = DB
   // workers.Configure(map[string]string{
@@ -63,6 +64,7 @@ func Uzer(t *testing.T) (*models.User) {
   if (uzer != nil) { return uzer }
 
   uzer = gory.Build("user").(*models.User)
+  uzer.Email = "api" + uzer.Email
   err = DB.Create(uzer).Error
   if (err != nil) { t.Error(err) }
 
@@ -83,9 +85,9 @@ func MockMailerFalse(c martini.Context) {
 
 func Test_Api500Envelope(t *testing.T) {
   setup(t)
-  data := new(ApiData)
+  data := ApiData{}
   data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
-  targetByHand := ApiEnvelope{data}
+  targetByHand := data
   targetByMethod := Api500Envelope()
   expect(t, reflect.DeepEqual(targetByHand, targetByMethod), true)
 }

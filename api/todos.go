@@ -19,7 +19,7 @@ func TodosIndex(r render.Render, user *models.User) {
   }
 
   data := &ApiData{User: user, Todos: todos}
-  r.JSON(200, ApiEnvelope{data})
+  r.JSON(200, data)
 }
 
 func TodosShow(params martini.Params, r render.Render, user *models.User) {
@@ -32,7 +32,7 @@ func TodosShow(params martini.Params, r render.Render, user *models.User) {
   }
 
   data := &ApiData{CurrentUser: user, Todo: todo}
-  r.JSON(200, ApiEnvelope{data})
+  r.JSON(200, data)
 }
 
 func TodosCreate(r render.Render, user *models.User, attrs models.TodoAttrs) {
@@ -50,7 +50,7 @@ func TodosCreate(r render.Render, user *models.User, attrs models.TodoAttrs) {
   }
 
   data := &ApiData{CurrentUser: user, Todo: todo}
-  r.JSON(201, ApiEnvelope{data})
+  r.JSON(201, data)
 }
 
 func TodosUpdate(params martini.Params, r render.Render, user *models.User, attrs models.TodoAttrs) {
@@ -74,7 +74,7 @@ func TodosUpdate(params martini.Params, r render.Render, user *models.User, attr
   }
 
   data := &ApiData{CurrentUser: user, Todo: todo}
-  r.JSON(200, ApiEnvelope{data})
+  r.JSON(200, data)
 }
 
 func TodosDelete(params martini.Params, r render.Render, user *models.User) {
@@ -94,5 +94,5 @@ func TodosDelete(params martini.Params, r render.Render, user *models.User) {
   }
 
   data := &ApiData{CurrentUser: user, ApiMessage: &ApiMessage{"The todo was deleted"}}
-  r.JSON(200, ApiEnvelope{data})
+  r.JSON(200, data)
 }

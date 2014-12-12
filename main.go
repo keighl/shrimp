@@ -13,7 +13,7 @@ import (
 /////////////////////////////
 
 func main() {
-  config := utils.ConfigForFile("conf/app.json")
+  config := utils.ConfigForFile("config/app.json")
   DB     := utils.DBForConfig(config)
 
   api.DB        = DB
@@ -40,19 +40,36 @@ func main() {
 }
 
 func SetupServerRoutes(server *martini.ClassicMartini) {
-  server.Get("/", api.Authorize, api.UserMe)
 
-  server.Post("/login", binding.Bind(models.UserAttrs{}), api.Login)
-  server.Post("/users", binding.Bind(models.UserAttrs{}), api.UserCreate)
-  server.Get("/me", api.Authorize, api.UserMe)
-  server.Put("/me", api.Authorize, binding.Bind(models.UserAttrs{}), api.UserUpdate)
-  server.Get("/todos", api.Authorize, api.TodosIndex)
-  server.Post("/todos", api.Authorize, binding.Bind(models.TodoAttrs{}), api.TodosCreate)
-  server.Get("/todos/:todo_id", api.Authorize, api.TodosShow)
-  server.Put("/todos/:todo_id", api.Authorize, binding.Bind(models.TodoAttrs{}), api.TodosUpdate)
-  server.Delete("/todos/:todo_id", api.Authorize, api.TodosDelete)
-  server.Post("/password-reset", binding.Bind(models.PasswordResetAttrs{}), api.Mailer, api.PasswordResetCreate)
-  server.Post("/password-reset/:token", binding.Bind(models.UserAttrs{}), api.PasswordResetUpdate)
+
+  server.Get("/v1/", api.Authorize, api.UserMe)
+
+  // Login
+  server.Post("/v1/login", binding.Bind(models.UserAttrs{}), api.Login)
+
+  // Signup
+  server.Post("/v1/users", binding.Bind(models.UserAttrs{}), api.UserCreate)
+
+  server.Options("/v1/users/me", func() {})
+
+  // Me
+  server.Get("/v1/users/me", api.Authorize, api.UserMe)
+
+
+
+  server.Get("/v1/me", api.Authorize, api.UserMe)
+  server.Put("/v1/me", api.Authorize, binding.Bind(models.UserAttrs{}), api.UserUpdate)
+
+  // Todos
+  server.Get("/v1/todos", api.Authorize, api.TodosIndex)
+  server.Post("/v1/todos", api.Authorize, binding.Bind(models.TodoAttrs{}), api.TodosCreate)
+  server.Get("/v1/todos/:todo_id", api.Authorize, api.TodosShow)
+  server.Put("/v1/todos/:todo_id", api.Authorize, binding.Bind(models.TodoAttrs{}), api.TodosUpdate)
+  server.Delete("/v1/todos/:todo_id", api.Authorize, api.TodosDelete)
+
+  // Password Reset
+  server.Post("/v1/password-reset", binding.Bind(models.PasswordResetAttrs{}), api.Mailer, api.PasswordResetCreate)
+  server.Post("/v1/password-reset/:token", binding.Bind(models.UserAttrs{}), api.PasswordResetUpdate)
 }
 
 

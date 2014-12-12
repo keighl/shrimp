@@ -18,7 +18,7 @@ var (
 // TODO find a library that does setup/tear down instead of this
 func setup(t *testing.T) {
   if (alreadySetup) { return }
-  Config = utils.ConfigForFile("../conf/test.json")
+  Config = utils.ConfigForFile("../config/test.json")
   DB = utils.DBForConfig(Config)
 
   // workers.Configure(map[string]string{
@@ -60,6 +60,7 @@ func Uzer(t *testing.T) (*User) {
   if (uzer != nil) { return uzer }
 
   uzer = gory.Build("user").(*User)
+  uzer.Email = "models" + uzer.Email
   err = DB.Create(uzer).Error
   if (err != nil) { t.Error(err) }
 

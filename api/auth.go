@@ -31,6 +31,7 @@ func Authorize(c martini.Context, r render.Render, req *http.Request) {
 
 /////////////////////////////
 
+
 func Login(r render.Render, attrs models.UserAttrs) {
 
   var err error
@@ -51,6 +52,6 @@ func Login(r render.Render, attrs models.UserAttrs) {
     return
   }
 
-  data := &ApiData{ApiToken: user.ApiToken}
-  r.JSON(200, ApiEnvelope{data})
+  data := &ApiData{ApiToken: user.ApiToken, CurrentUser: user}
+  r.JSON(200, data)
 }

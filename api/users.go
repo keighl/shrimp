@@ -21,12 +21,12 @@ func UserCreate(r render.Render, attrs models.UserAttrs) {
   }
 
   data := &ApiData{User: user, CurrentUser: user, ApiToken: user.ApiToken}
-  r.JSON(201, ApiEnvelope{data})
+  r.JSON(201, data)
 }
 
 func UserMe(r render.Render, user *models.User) {
   data := &ApiData{User: user, CurrentUser: user}
-  r.JSON(200, ApiEnvelope{data})
+  r.JSON(200, data)
 }
 
 func UserUpdate(r render.Render, user *models.User, attrs models.UserAttrs) {
@@ -44,6 +44,6 @@ func UserUpdate(r render.Render, user *models.User, attrs models.UserAttrs) {
   }
 
   data := &ApiData{User: user, CurrentUser: user}
-  r.JSON(200, ApiEnvelope{data})
+  r.JSON(200, data)
 }
 

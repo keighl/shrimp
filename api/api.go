@@ -42,29 +42,22 @@ type ApiError struct {
   Details []string `json:"details,omitempty"`
 }
 
-//////////////////////////////
-// API ENVELOPE //////////////
-
-type ApiEnvelope struct {
-  *ApiData `json:"data,omitempty"`
-}
-
-func Api500Envelope() (ApiEnvelope) {
-  data := new(ApiData)
+func Api500Envelope() (ApiData) {
+  data := ApiData{}
   data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
-  return ApiEnvelope{data}
+  return data
 }
 
-func ApiErrorEnvelope(message string, details []string) (ApiEnvelope) {
-  data := new(ApiData)
+func ApiErrorEnvelope(message string, details []string) (ApiData) {
+  data := ApiData{}
   data.ApiError = &ApiError{message, details}
-  return ApiEnvelope{data}
+  return data
 }
 
-func ApiMessageEnvelope(message string) (ApiEnvelope) {
-  data := new(ApiData)
+func ApiMessageEnvelope(message string) (ApiData) {
+  data := ApiData{}
   data.ApiMessage = &ApiMessage{message}
-  return ApiEnvelope{data}
+  return data
 }
 
 // MAILER INJECTION /////////////

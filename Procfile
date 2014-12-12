@@ -1,2 +1,2 @@
 gin: gin
-redis: redis-server conf/redis.conf
+#redis: redis-server config/redis.conf
