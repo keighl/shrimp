@@ -1,30 +1,29 @@
 package api
 
 import (
-  "shrimp/models"
-  "shrimp/utils"
-  "github.com/jinzhu/gorm"
+  m "shrimp/models"
+  u "shrimp/utils"
   "github.com/keighl/mandrill"
-  "github.com/go-martini/martini"
+  r "github.com/dancannon/gorethink"
 )
 
 var  (
-  Config *utils.Configuration
-  DB gorm.DB
+  Config *u.Configuration
+  DB *r.Session
 )
 
 //////////////////////////////
 // API DATA //////////////////
 
 type ApiData struct {
-  CurrentUser *models.User `json:"current_user,omitempty"`
+  CurrentUser *m.User `json:"current_user,omitempty"`
   ApiToken string `json:"api_token,omitempty"`
   *ApiError `json:"error,omitempty"`
   *ApiMessage `json:"message,omitempty"`
-  *models.User `json:"user,omitempty"`
-  *models.Todo `json:"todo,omitempty"`
-  *models.PasswordReset `json:"password_reset,omitempty"`
-  Todos []models.Todo `json:"todos,omitempty"`
+  *m.User `json:"user,omitempty"`
+  *m.Todo `json:"todo,omitempty"`
+  *m.PasswordReset `json:"password_reset,omitempty"`
+  Todos []m.Todo `json:"todos,omitempty"`
 }
 
 //////////////////////////////
@@ -60,17 +59,12 @@ func ApiMessageEnvelope(message string) (ApiData) {
   return data
 }
 
-// MAILER INJECTION /////////////
+//////////////////////////////
+// MAILER ////////////////////
 
-type SendEmail func(message *mandrill.Message)(bool)
-
-func Mailer(c martini.Context) {
-  c.Map(SendEmail(func (message *mandrill.Message)(bool) {
-    client := mandrill.ClientWithKey(Config.MandrillAPIKey)
-    _, apiError, err := client.MessagesSend(message)
-    if (apiError != nil || err != nil) { return false }
-    return true
-  }))
+var sendEmail = func(message *mandrill.Message) (bool) {
+  client := mandrill.ClientWithKey(Config.MandrillAPIKey)
+  _, apiError, err := client.MessagesSend(message)
+  if (apiError != nil || err != nil) { return false }
+  return true
 }
-
-

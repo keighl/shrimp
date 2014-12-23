@@ -3,9 +3,9 @@ tmp
 .ruby-version
 gin-bin
 db/config.yml
-config/redis.conf
-config/app.json
-config/test.json
+config/*.conf
+config/*.json
 httpclient
 *.rdb
 *.out
+rethinkdb_data

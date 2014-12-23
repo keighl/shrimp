@@ -1,32 +1,51 @@
 package api
 
 import (
-  "shrimp/models"
+  m "shrimp/models"
+  r "github.com/dancannon/gorethink"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/render"
-  "github.com/jinzhu/gorm"
+  "errors"
 )
 
-func TodosIndex(r render.Render, user *models.User) {
-  todos := []models.Todo{}
-  err := DB.Where("user_id = ?", user.Id).Find(&todos).Error
+////////////////////////
+
+var loadTodos = func(u *m.User) ([]m.Todo, error) {
+  todos := []m.Todo{}
+  res, err := r.Table("todos").OrderBy(r.Desc("created_at")).Run(DB)
+  if (err != nil) { return nil, err }
+  err = res.All(&todos)
+  return todos, err
+}
+
+func TodosIndex(r render.Render, user *m.User) {
+  todos, err := loadTodos(user)
 
   if (err != nil) {
-    if (err != gorm.RecordNotFound) {
-      r.JSON(500, ApiMessageEnvelope(err.Error()))
-      return
-    }
+    r.JSON(500, ApiMessageEnvelope(err.Error()))
+    return
   }
 
   data := &ApiData{User: user, Todos: todos}
   r.JSON(200, data)
 }
 
-func TodosShow(params martini.Params, r render.Render, user *models.User) {
-  todo := &models.Todo{}
-  err := DB.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
+/////////////////////////
 
-  if (err != nil) {
+var loadTodo = func(id string, u *m.User) (*m.Todo, error) {
+  todo := &m.Todo{}
+  res, err := r.Table("todos").Get(id).Run(DB)
+  if (err != nil) { return nil, err }
+  err = res.One(todo)
+  if (err != nil) { return nil, err }
+  if (todo.UserId != u.Id) { return nil, errors.New("Not your todo") }
+  return todo, err
+}
+
+func TodosShow(params martini.Params, r render.Render, user *m.User) {
+  todo, err := loadTodo(params["todo_id"], user)
+
+  if (todo == nil || err != nil) {
     r.JSON(404, ApiMessageEnvelope("Record not found"))
     return
   }
@@ -35,10 +54,16 @@ func TodosShow(params martini.Params, r render.Render, user *models.User) {
   r.JSON(200, data)
 }
 
-func TodosCreate(r render.Render, user *models.User, attrs models.TodoAttrs) {
+/////////////////////////
+
+var saveTodo = func(todo *m.Todo) (error) {
+  return todo.Save()
+}
+
+func TodosCreate(r render.Render, user *m.User, attrs m.TodoAttrs) {
   todo := attrs.Todo()
   todo.UserId = user.Id
-  err := DB.Create(todo).Error
+  err := saveTodo(todo)
 
   if (err != nil) {
     if (todo.HasErrors()) {
@@ -53,16 +78,17 @@ func TodosCreate(r render.Render, user *models.User, attrs models.TodoAttrs) {
   r.JSON(201, data)
 }
 
-func TodosUpdate(params martini.Params, r render.Render, user *models.User, attrs models.TodoAttrs) {
-  todo := &models.Todo{}
-  err := DB.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
+/////////////////////////
 
-  if (err != nil) {
+func TodosUpdate(params martini.Params, r render.Render, user *m.User, attrs m.TodoAttrs) {
+  todo, err := loadTodo(params["todo_id"], user)
+
+  if (todo == nil || err != nil) {
     r.JSON(404, ApiMessageEnvelope("Record not found"))
     return
   }
 
-  err = DB.Model(todo).Updates(attrs).Error
+  err = saveTodo(todo)
 
   if (err != nil) {
     if (todo.HasErrors()) {
@@ -77,16 +103,21 @@ func TodosUpdate(params martini.Params, r render.Render, user *models.User, attr
   r.JSON(200, data)
 }
 
-func TodosDelete(params martini.Params, r render.Render, user *models.User) {
-  todo := &models.Todo{}
-  err := DB.Where("id = ?", params["todo_id"]).Where("user_id = ?", user.Id).First(todo).Error
+/////////////////////////
 
-  if (err != nil) {
+var deleteTodo = func(todo *m.Todo) (error) {
+  return todo.Delete()
+}
+
+func TodosDelete(params martini.Params, r render.Render, user *m.User) {
+  todo, err := loadTodo(params["todo_id"], user)
+
+  if (todo == nil || err != nil) {
     r.JSON(404, ApiMessageEnvelope("Record not found"))
     return
   }
 
-  err = DB.Delete(todo).Error
+  err = deleteTodo(todo)
 
   if (err != nil) {
     r.JSON(400, ApiMessageEnvelope("Couldn't delete the item"))

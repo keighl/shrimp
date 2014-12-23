@@ -3,23 +3,19 @@ package utils
 import (
   "os"
   "encoding/json"
-  "github.com/jinzhu/gorm"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/render"
   "github.com/martini-contrib/cors"
   _ "github.com/go-sql-driver/mysql"
+  r "github.com/dancannon/gorethink"
 )
 
 type Configuration struct {
   AppName string
   BaseURL string
-  DBDriveSources string
-  DBLoggingEnabled bool
+  RethinkHost string
+  RethinkDatabase string
   ServerLoggingEnabled bool
-  WorkerServer string
-  WorkerDatabase string
-  WorkerPool string
-  WorkerProcess string
   MandrillAPIKey string
 }
 
@@ -34,11 +30,12 @@ func ConfigForFile(confFile string) *Configuration {
   return c
 }
 
-func DBForConfig(conf *Configuration) gorm.DB {
-  d, err := gorm.Open("mysql", conf.DBDriveSources)
-  if (err != nil) { panic(err) }
-  d.LogMode(conf.DBLoggingEnabled)
-  return d
+func RethinkSession(conf *Configuration) *r.Session {
+  session, _ := r.Connect(r.ConnectOpts{
+    Address:  conf.RethinkHost,
+    Database: conf.RethinkDatabase,
+  })
+  return session
 }
 
 func MartiniServer(logginEnabled bool) (*martini.ClassicMartini) {
@@ -58,4 +55,3 @@ func MartiniServer(logginEnabled bool) (*martini.ClassicMartini) {
   }))
   return s
 }
-

@@ -2,23 +2,20 @@ package models
 
 import (
   "time"
-  "errors"
   "strings"
+  r "github.com/dancannon/gorethink"
+  "errors"
 )
 
 type Todo struct {
-  Errors []string `json:"errors,omitempty" sql:"-"`
-  ErrorMap map[string]bool `json:"-" sql:"-"`
-  Id int64 `json:"-"`
-  CreatedAt time.Time `json:"created_at,omitempty"`
-  UpdatedAt time.Time `json:"updated_at,omitempty"`
-  Title string `json:"title"`
-  UserId int64 `json:"-"`
-  Complete bool `json:"complete"`
-}
-
-func (x Todo) TableName() string {
-  return "todos"
+  Errors []string `gorethink:"-" json:"errors,omitempty" sql:"-"`
+  ErrorMap map[string]bool `gorethink:"-" json:"-" sql:"-"`
+  Id string `gorethink:"id,omitempty" json:"id"`
+  CreatedAt time.Time `gorethink:"created_at" json:"created_at,omitempty"`
+  UpdatedAt time.Time `gorethink:"updated_at" json:"updated_at,omitempty"`
+  Title string `gorethink:"title" json:"title"`
+  UserId string `gorethink:"user_id" json:"-"`
+  Complete bool `gorethink:"complete" json:"complete"`
 }
 
 type TodoAttrs struct {
@@ -27,30 +24,53 @@ type TodoAttrs struct {
 }
 
 //////////////////////////////
-// CALLBACKS /////////////////
+// TRANSACTIONS //////////////
 
-func (x *Todo) BeforeCreate() (err error) {
-  x.CreatedAt = time.Now()
-  return
-}
+func (x *Todo) Save() error {
 
-func (x *Todo) BeforeSave() (err error) {
-  x.Errors    = []string{}
-  x.ErrorMap  = map[string]bool{}
-  x.UpdatedAt = time.Now()
-
-  x.Trimspace()
-  x.ValidateTitle()
-
-  if (x.HasErrors()) {
-    err = errors.New("There was a problem saving your todo.")
+  if (!x.Validate()) {
+    return errors.New("Validation errors")
   }
 
-  return
+  if (x.Id == "") {
+    x.BeforeCreate()
+    res, err := r.Table("todos").Insert(x).RunWrite(DB)
+    if (err != nil) { return err }
+    x.Id = res.GeneratedKeys[0]
+  }
+
+  x.BeforeUpdate()
+  _, err := r.Table("todos").Get(x.Id).Replace(x).RunWrite(DB)
+  return err
+}
+
+func (x *Todo) Delete() error {
+  _, err := r.Table("todos").Get(x.Id).Delete().RunWrite(DB)
+  return err
+}
+
+//////////////////////////////
+// CALLBACKS /////////////////
+
+func (x *Todo) BeforeCreate() {
+  x.CreatedAt = time.Now()
+  x.UpdatedAt = time.Now()
+}
+
+func (x *Todo) BeforeUpdate() {
+  x.UpdatedAt = time.Now()
 }
 
 //////////////////////////////
 // VALIDATIONS ///////////////
+
+func (x *Todo) Validate() (bool) {
+  x.Errors = []string{}
+  x.ErrorMap = map[string]bool{}
+  x.Trimspace()
+  x.ValidateTitle()
+  return !x.HasErrors()
+}
 
 func (x *Todo) HasErrors() (bool) {
   return len(x.Errors) > 0

@@ -2,40 +2,20 @@ package api
 
 import (
   "shrimp/utils"
-  "shrimp/models"
   "testing"
   "net/http/httptest"
   "github.com/go-martini/martini"
-  _ "github.com/jrallison/go-workers"
-  "github.com/modocache/gory"
   "reflect"
-
-  "github.com/keighl/mandrill"
 )
 
 var (
   alreadySetup bool
-  err error
 )
 
-// TODO find a library that does setup/tear down instead of this
 func setup(t *testing.T) {
   if (alreadySetup) { return }
-
-  Config    = utils.ConfigForFile("../config/test.json")
-  DB        = utils.DBForConfig(Config)
-  models.DB = DB
-  // workers.Configure(map[string]string{
-  //   "server": config.WorkerServer,
-  //   "database": config.WorkerDatabase,
-  //   "pool": config.WorkerPool,
-  //   "process": config.WorkerProcess,
-  // })
-
-  DB.Exec("TRUNCATE TABLE users")
-  DB.Exec("TRUNCATE TABLE todos")
-  DB.Exec("TRUNCATE TABLE password_resets")
-  models.DefineFactories()
+  Config = utils.ConfigForFile("../config/test.json")
+  DB = utils.RethinkSession(Config)
   alreadySetup = true
 }
 
@@ -55,30 +35,6 @@ func refute(t *testing.T, a interface{}, b interface{}) {
     t.Errorf("Did not expect %v (type %v) - Got %v (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
   }
 }
-
-var (
-  uzer *models.User // memoized user
-)
-
-func Uzer(t *testing.T) (*models.User) {
-  if (uzer != nil) { return uzer }
-
-  uzer = gory.Build("user").(*models.User)
-  uzer.Email = "api" + uzer.Email
-  err = DB.Create(uzer).Error
-  if (err != nil) { t.Error(err) }
-
-  return uzer
-}
-
-func MockMailerTrue(c martini.Context) {
-  c.Map(SendEmail(func (message *mandrill.Message)(bool) { return true }))
-}
-
-func MockMailerFalse(c martini.Context) {
-  c.Map(SendEmail(func (message *mandrill.Message)(bool) { return false }))
-}
-
 
 //////////////////////////////
 // API ENVELOPE //////////////

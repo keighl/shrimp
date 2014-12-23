@@ -5,30 +5,27 @@ import (
   "code.google.com/p/go.crypto/bcrypt"
   "github.com/dchest/uniuri"
   "bytes"
-  "errors"
   "regexp"
   "strings"
+  r "github.com/dancannon/gorethink"
+  "errors"
 )
 
 type User struct {
-  Errors []string `json:"errors,omitempty" sql:"-"`
-  ErrorMap map[string]bool `json:"-" sql:"-"`
-  Id int64 `json:"-"`
-  CreatedAt time.Time `json:"created_at,omitempty"`
-  UpdatedAt time.Time `json:"updated_at,omitempty"`
-  CryptedPassword string `json:"-"`
-  Salt string `json:"-"`
-  Email string `json:"email,omitempty"`
-  NameFirst string `json:"name_first,omitempty"`
-  NameLast string `json:"name_last,omitempty"`
-  Password string `json:"-" sql:"-"`
-  PasswordConfirmation string `json:"-" sql:"-"`
-  IosPushToken string `json:"-"`
-  ApiToken string `json:"-"`
-}
-
-func (x User) TableName() string {
-  return "users"
+  Errors []string `gorethink:"-" json:"errors,omitempty"`
+  ErrorMap map[string]bool `gorethink:"-" json:"-"`
+  Id string `gorethink:"id,omitempty" json:"-"`
+  CreatedAt time.Time `gorethink:"created_at" json:"created_at,omitempty"`
+  UpdatedAt time.Time `gorethink:"updated_at" json:"updated_at,omitempty"`
+  CryptedPassword string `gorethink:"crypted_password" json:"-"`
+  Salt string `gorethink:"salt" json:"-"`
+  Email string `gorethink:"email" json:"email,omitempty"`
+  NameFirst string `gorethink:"name_first" json:"name_first,omitempty"`
+  NameLast string `gorethink:"name_last" json:"name_last,omitempty"`
+  Password string `gorethink:"-" json:"-" gorethink:"-"`
+  PasswordConfirmation string `gorethink:"-" json:"-"`
+  IosPushToken string `gorethink:"ios_push_token" json:"-"`
+  ApiToken string `gorethink:"api_token" json:"-"`
 }
 
 type UserAttrs struct {
@@ -41,59 +38,59 @@ type UserAttrs struct {
 }
 
 //////////////////////////////
+// TRANSACTIONS //////////////
+
+func (x *User) Save() error {
+
+  if (!x.Validate()) {
+    return errors.New("Validation errors")
+  }
+
+  if (x.Id == "") {
+    x.BeforeCreate()
+    res, err := r.Table("users").Insert(x).RunWrite(DB)
+    if (err != nil) { return err }
+    x.Id = res.GeneratedKeys[0]
+  }
+
+  x.BeforeUpdate()
+  _, err := r.Table("users").Get(x.Id).Replace(x).RunWrite(DB)
+  return err
+}
+
+//////////////////////////////
 // CALLBACKS /////////////////
 
-func (x *User) BeforeSave() (err error) {
-  x.Errors    = []string{}
-  x.ErrorMap  = map[string]bool{}
+func (x *User) BeforeCreate() {
   x.CreatedAt = time.Now()
   x.UpdatedAt = time.Now()
+  x.ApiToken = uniuri.NewLen(30)
+}
 
+func (x *User) BeforeUpdate() {
+  x.UpdatedAt = time.Now()
+}
+
+//////////////////////////////
+// VALIDATIONS ///////////////
+
+func (x *User) Validate() (bool) {
+  x.Errors = []string{}
+  x.ErrorMap = map[string]bool{}
   x.Trimspace()
   x.ValidateName()
   x.ValidateEmail()
   x.ValidateEmailUniqueness()
 
-  return
-}
-
-func (x *User) BeforeCreate() (err error) {
-
-  x.ApiToken = uniuri.NewLen(30)
-
-  if (x.Password != "") {
-    if (x.validatePasswordAndConfirmation()) {
-      x.SetPassword(x.Password)
-    }
+  // New record check
+  if (x.Id == "") {
+    x.ValidateRequiredPassword()
   } else {
-    x.Errors = append(x.Errors, "Password can't be blank.")
-    x.ErrorMap["Password"] = true
+    x.ValidateOptionalPassword()
   }
 
-  if (x.HasErrors()) {
-    err = errors.New("There was a problem saving your info.")
-  }
-
-  return
+  return !x.HasErrors()
 }
-
-func (x *User) BeforeUpdate() (err error) {
-
-  if (x.Password != "") {
-    if (x.validatePasswordAndConfirmation()) {
-      x.SetPassword(x.Password)
-    }
-  }
-
-  if (x.HasErrors()) {
-    err = errors.New("There was a problem saving your info.")
-  }
-
-  return
-}
-
-//////////////////////////////
-// VALIDATIONS ///////////////
 
 func (x *User) HasErrors() (bool) {
   return len(x.Errors) > 0
@@ -140,29 +137,48 @@ func (x *User) ValidateEmail() {
   emailMatch := regex.MatchString(x.Email)
 
   if (!emailMatch) {
-    x.Errors = append(x.Errors, "Your email address is invalid.")
+    x.Errors = append(x.Errors, "Email address is invalid.")
     x.ErrorMap["Email"] = true
   }
 }
 
 func (x *User) ValidateEmailUniqueness() {
-  count := 0
-  if (x.Id == 0) {
-    DB.
-      Model(&User{}).
-      Where("email = ?", strings.TrimSpace(x.Email)).
-      Count(&count)
-  } else {
-    DB.
-      Model(&User{}).
-      Where("email = ?", strings.TrimSpace(x.Email)).
-      Not([]int64{x.Id}).
-      Count(&count)
+
+  var count int
+
+  filter := func(row r.Term) r.Term {
+    return row.Field("email").Eq(x.Email).And(row.Field("id").Ne(x.Id))
   }
+
+  res, _ := r.Table("users").
+    Filter(filter).
+    Count().
+    Run(DB)
+
+  res.One(&count)
 
   if (count > 0) {
     x.Errors = append(x.Errors, "That email address is already taken.")
     x.ErrorMap["Email"] = true
+  }
+}
+
+func (x *User) ValidateRequiredPassword() {
+  if (x.Password != "") {
+    if (x.validatePasswordAndConfirmation()) {
+      x.SetPassword(x.Password)
+    }
+  } else {
+    x.Errors = append(x.Errors, "Password can't be blank.")
+    x.ErrorMap["Password"] = true
+  }
+}
+
+func (x *User) ValidateOptionalPassword() {
+  if (x.Password != "") {
+    if (x.validatePasswordAndConfirmation()) {
+      x.SetPassword(x.Password)
+    }
   }
 }
 
@@ -178,7 +194,7 @@ func (x *User) Trimspace() {
 //////////////////////////////
 // PASSWORD UTILS ////////////
 
-func (x *User) SetPassword(password string) (err error) {
+func (x *User) SetPassword(password string) {
 
   var saltedPassword bytes.Buffer
   var cryptedPassword []byte
@@ -188,9 +204,7 @@ func (x *User) SetPassword(password string) (err error) {
   saltedPassword.WriteString(password)
   saltedPassword.WriteString(x.Salt)
 
-  cryptedPassword, err = bcrypt.GenerateFromPassword(saltedPassword.Bytes(), 10)
-
-  if err != nil { return err }
+  cryptedPassword, _ = bcrypt.GenerateFromPassword(saltedPassword.Bytes(), 10)
 
   x.CryptedPassword = string(cryptedPassword)
 

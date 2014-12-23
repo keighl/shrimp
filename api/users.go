@@ -1,15 +1,28 @@
 package api
 
 import (
-  "shrimp/models"
+  m "shrimp/models"
   "github.com/martini-contrib/render"
+  r "github.com/dancannon/gorethink"
 )
 
-func UserCreate(r render.Render, attrs models.UserAttrs) {
+var loadUser = func(id string) (*m.User, error) {
+  user := &m.User{}
+  res, err := r.Table("users").Get(id).Run(DB)
+  if (err != nil) { return nil, err }
+  err = res.One(user)
+  return user, err
+}
 
-  var err error
+//////////////////////////////////////
+
+var saveUser = func(user *m.User) (error) {
+  return user.Save()
+}
+
+func UserCreate(r render.Render, attrs m.UserAttrs) {
   user := attrs.User()
-  err = DB.Create(user).Error
+  err := saveUser(user)
 
   if (err != nil) {
     if (user.HasErrors()) {
@@ -24,15 +37,17 @@ func UserCreate(r render.Render, attrs models.UserAttrs) {
   r.JSON(201, data)
 }
 
-func UserMe(r render.Render, user *models.User) {
+//////////////////////////////////////
+
+func Me(r render.Render, user *m.User) {
   data := &ApiData{User: user, CurrentUser: user}
   r.JSON(200, data)
 }
 
-func UserUpdate(r render.Render, user *models.User, attrs models.UserAttrs) {
+//////////////////////////////////////
 
-  var err error
-  err = DB.Model(user).Updates(attrs).Error
+func MeUpdate(r render.Render, user *m.User, attrs m.UserAttrs) {
+  err := saveUser(user)
 
   if (err != nil) {
     if (user.HasErrors()) {

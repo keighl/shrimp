@@ -1,0 +1,8 @@
+{
+  "AppName" : "Shrimp",
+  "BaseURL" : "http://localhost:3000/",
+  "RethinkHost" : "0.0.0.0:28015",
+  "RethinkDatabase" : "shrimp",
+  "ServerLoggingEnabled" : true,
+  "MandrillAPIKey" : "XXXXXXXXX"
+}

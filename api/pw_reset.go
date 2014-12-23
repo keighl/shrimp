@@ -1,35 +1,46 @@
 package api
 
 import (
-  "shrimp/models"
+  m "shrimp/models"
   "shrimp/utils"
   "github.com/martini-contrib/render"
   "github.com/keighl/mandrill"
   "github.com/go-martini/martini"
   "text/template"
   "bytes"
+  "strings"
+  "time"
+  r "github.com/dancannon/gorethink"
 )
 
-func PasswordResetCreate(r render.Render, attrs models.PasswordResetAttrs, sendEmail SendEmail) {
+/////////////////////
 
-  user := &models.User{}
-  err := DB.Where("email = ?", attrs.Email).First(user).Error
+var savePasswordReset = func(reset *m.PasswordReset) error {
+  return reset.Save()
+}
 
-  if (err != nil) {
-    r.JSON(400, ApiErrorEnvelope("That email isn't in our system", nil))
+func PasswordResetCreate(r render.Render, attrs m.PasswordResetAttrs) {
+
+  user := userFromEmail(strings.TrimSpace(attrs.Email))
+  if (user == nil) {
+    r.JSON(400, ApiErrorEnvelope("That email isn't in our system!", []string{}))
     return
   }
 
-  pwr := &models.PasswordReset{}
-  pwr.UserId = user.Id
-  err = DB.Create(pwr).Error
+  reset := &m.PasswordReset{}
+  reset.UserId = user.Id
+  err := savePasswordReset(reset)
 
   if (err != nil) {
-    r.JSON(500, Api500Envelope())
+    if (reset.HasErrors()) {
+      r.JSON(400, ApiErrorEnvelope(err.Error(), reset.Errors))
+    } else {
+      r.JSON(500, Api500Envelope())
+    }
     return
   }
 
-  message, err := PasswordResetEmailMessage(user, pwr)
+  message, err := PasswordResetEmailMessage(user, reset)
   if (err != nil) {
     r.JSON(500, Api500Envelope())
     return
@@ -40,29 +51,46 @@ func PasswordResetCreate(r render.Render, attrs models.PasswordResetAttrs, sendE
     return
   }
 
-  data := &ApiData{PasswordReset: pwr}
+  data := &ApiData{PasswordReset: reset}
   r.JSON(201, data)
 }
 
-func PasswordResetUpdate(params martini.Params, r render.Render, attrs models.UserAttrs) {
-  user := &models.User{}
-  pwr := &models.PasswordReset{}
-  err := DB.Where("token = ?", params["token"]).First(pwr).Error
+/////////////////////
 
-  if (err != nil || !pwr.Active) {
-    r.JSON(400, ApiErrorEnvelope("Invalid reset token", nil))
+var loadPasswordReset = func(token string) (*m.PasswordReset, error) {
+  reset := &m.PasswordReset{}
+  res, err := r.Table("password_resets").GetAllByIndex("token", token).Run(DB)
+  if (err != nil) { return nil, err }
+  err = res.One(reset)
+  if (err != nil) { return nil, err }
+  return reset, err
+}
+
+//////////////
+
+func PasswordResetUpdate(params martini.Params, r render.Render, attrs m.UserAttrs) {
+
+  reset, err := loadPasswordReset(params["token"])
+
+  if (err != nil) {
+    r.JSON(400, ApiErrorEnvelope("Invalid password reset token", nil))
     return
   }
 
-  err = DB.Where("id = ?", pwr.UserId).First(user).Error
+  if (reset.ExpiresAt.Before(time.Now())) {
+    r.JSON(400, ApiErrorEnvelope("The reset token has expired", nil))
+    return
+  }
+
+  user, err := loadUser(reset.UserId)
   if (err != nil) {
-    r.JSON(400, ApiErrorEnvelope("Invalid reset token", nil))
+    r.JSON(500, Api500Envelope())
     return
   }
 
   user.Password             = attrs.Password
   user.PasswordConfirmation = attrs.PasswordConfirmation
-  err = DB.Save(user).Error
+  err = saveUser(user)
 
   if (err != nil) {
     if (user.HasErrors()) {
@@ -73,24 +101,30 @@ func PasswordResetUpdate(params martini.Params, r render.Render, attrs models.Us
     return
   }
 
+  reset.Active = false
+  err = savePasswordReset(reset)
+  if (err != nil) {
+    // TODO notify us
+  }
+
   r.JSON(200, ApiMessageEnvelope("Your password was reset"))
 }
 
-///////
+////////////////////////
 
 type ResetPasswordEmailData struct {
   Config *utils.Configuration
-  User *models.User
-  PasswordReset *models.PasswordReset
+  User *m.User
+  PasswordReset *m.PasswordReset
 }
 
 func (x *ResetPasswordEmailData) ResetURL() string {
   return Config.BaseURL + "password-reset/" + x.PasswordReset.Token
 }
 
-func PasswordResetEmailMessage(user *models.User, pwr *models.PasswordReset) (*mandrill.Message, error) {
+func PasswordResetEmailMessage(user *m.User, reset *m.PasswordReset) (*mandrill.Message, error) {
   var textContent bytes.Buffer
-  resetData := &ResetPasswordEmailData{Config, user, pwr}
+  resetData := &ResetPasswordEmailData{Config, user, reset}
 
   t, err := template.ParseFiles("./emails/reset_password.text")
   if (err != nil) { return nil, err }
