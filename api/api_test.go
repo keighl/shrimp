@@ -1,27 +1,20 @@
 package api
 
 import (
-  "shrimp/utils"
+  u "shrimp/utils"
   "testing"
   "net/http/httptest"
   "github.com/go-martini/martini"
   "reflect"
 )
 
-var (
-  alreadySetup bool
-)
-
-func setup(t *testing.T) {
-  if (alreadySetup) { return }
-  Config = utils.ConfigForFile("../config/test.json")
-  DB = utils.RethinkSession(Config)
-  alreadySetup = true
+func init() {
+  Config = u.ConfigForFile("../config/test.json")
+  DB = u.RethinkSession(Config)
 }
 
 func testTools(t *testing.T) (*martini.ClassicMartini, *httptest.ResponseRecorder) {
-  setup(t)
-  return utils.MartiniServer(false), httptest.NewRecorder()
+  return u.MartiniServer(false), httptest.NewRecorder()
 }
 
 func expect(t *testing.T, a interface{}, b interface{}) {
@@ -39,11 +32,10 @@ func refute(t *testing.T, a interface{}, b interface{}) {
 //////////////////////////////
 // API ENVELOPE //////////////
 
-func Test_Api500Envelope(t *testing.T) {
-  setup(t)
-  data := ApiData{}
-  data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
+func Test_ServerErrorEnvelope(t *testing.T) {
+  data := Data{}
+  data.Error = &Error{"There was an unexpected error!", []string{}}
   targetByHand := data
-  targetByMethod := Api500Envelope()
+  targetByMethod := ServerErrorEnvelope()
   expect(t, reflect.DeepEqual(targetByHand, targetByMethod), true)
 }

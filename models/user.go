@@ -1,22 +1,16 @@
 package models
 
 import (
-  "time"
   "code.google.com/p/go.crypto/bcrypt"
   "github.com/dchest/uniuri"
   "bytes"
   "regexp"
   "strings"
   r "github.com/dancannon/gorethink"
-  "errors"
 )
 
 type User struct {
-  Errors []string `gorethink:"-" json:"errors,omitempty"`
-  ErrorMap map[string]bool `gorethink:"-" json:"-"`
-  Id string `gorethink:"id,omitempty" json:"-"`
-  CreatedAt time.Time `gorethink:"created_at" json:"created_at,omitempty"`
-  UpdatedAt time.Time `gorethink:"updated_at" json:"updated_at,omitempty"`
+  Record
   CryptedPassword string `gorethink:"crypted_password" json:"-"`
   Salt string `gorethink:"salt" json:"-"`
   Email string `gorethink:"email" json:"email,omitempty"`
@@ -24,76 +18,44 @@ type User struct {
   NameLast string `gorethink:"name_last" json:"name_last,omitempty"`
   Password string `gorethink:"-" json:"-" gorethink:"-"`
   PasswordConfirmation string `gorethink:"-" json:"-"`
-  IosPushToken string `gorethink:"ios_push_token" json:"-"`
-  ApiToken string `gorethink:"api_token" json:"-"`
+  APIToken string `gorethink:"api_token" json:"-"`
 }
 
 type UserAttrs struct {
   NameFirst string `json:"name_first" form:"name_first"`
   NameLast string `json:"name_last" form:"name_last"`
   Email string `json:"email" form:"email"`
-  IosPushToken string `json:"ios_push_token" form:"ios_push_token"`
   Password string `json:"password" form:"password"`
   PasswordConfirmation string `json:"password_confirmation" form:"password_confirmation"`
 }
 
-//////////////////////////////
-// TRANSACTIONS //////////////
-
-func (x *User) Save() error {
-
-  if (!x.Validate()) {
-    return errors.New("Validation errors")
-  }
-
-  if (x.Id == "") {
-    x.BeforeCreate()
-    res, err := r.Table("users").Insert(x).RunWrite(DB)
-    if (err != nil) { return err }
-    x.Id = res.GeneratedKeys[0]
-  }
-
-  x.BeforeUpdate()
-  _, err := r.Table("users").Get(x.Id).Replace(x).RunWrite(DB)
-  return err
+func (x *User) Table() string {
+  return "users"
 }
 
 //////////////////////////////
 // CALLBACKS /////////////////
 
 func (x *User) BeforeCreate() {
-  x.CreatedAt = time.Now()
-  x.UpdatedAt = time.Now()
-  x.ApiToken = uniuri.NewLen(30)
-}
-
-func (x *User) BeforeUpdate() {
-  x.UpdatedAt = time.Now()
+  x.Record.BeforeCreate()
+  x.APIToken = uniuri.NewLen(30)
 }
 
 //////////////////////////////
 // VALIDATIONS ///////////////
 
-func (x *User) Validate() (bool) {
-  x.Errors = []string{}
-  x.ErrorMap = map[string]bool{}
+func (x *User) Validate() {
+  x.Record.Validate()
   x.Trimspace()
   x.ValidateName()
   x.ValidateEmail()
   x.ValidateEmailUniqueness()
 
-  // New record check
-  if (x.Id == "") {
+  if (x.IsNewRecord()) {
     x.ValidateRequiredPassword()
   } else {
     x.ValidateOptionalPassword()
   }
-
-  return !x.HasErrors()
-}
-
-func (x *User) HasErrors() (bool) {
-  return len(x.Errors) > 0
 }
 
 func (x *User) validatePasswordAndConfirmation() (success bool) {
@@ -103,18 +65,15 @@ func (x *User) validatePasswordAndConfirmation() (success bool) {
   if (regex.MatchString(x.Password)) {
     if (x.PasswordConfirmation != "") {
       if (x.Password != x.PasswordConfirmation) {
-        x.Errors = append(x.Errors, "Password confirmation doesn't match.")
-        x.ErrorMap["PasswordConfirmation"] = true
+        x.ErrorOn("PasswordConfirmation", "Password confirmation doesn't match.")
       } else {
         return true
       }
     } else {
-      x.Errors = append(x.Errors, "Password confirmation can't be blank.")
-      x.ErrorMap["PasswordConfirmation"] = true
+      x.ErrorOn("PasswordConfirmation", "Password confirmation can't be blank.")
     }
   } else {
-    x.Errors = append(x.Errors, "Password must be at least 8 characters, and have no spaces")
-    x.ErrorMap["Password"] = true
+    x.ErrorOn("Password", "Password must be at least 8 characters, and have no spaces")
   }
 
   return false
@@ -122,13 +81,11 @@ func (x *User) validatePasswordAndConfirmation() (success bool) {
 
 func (x *User) ValidateName() {
   if (x.NameFirst == "") {
-    x.Errors = append(x.Errors, "First name can't be blank.")
-    x.ErrorMap["NameFirst"] = true
+    x.ErrorOn("NameFirst", "First name can't be blank.")
   }
 
   if (x.NameLast == "") {
-    x.Errors = append(x.Errors, "Last name can't be blank.")
-    x.ErrorMap["NameLast"] = true
+    x.ErrorOn("NameLast", "Last name can't be blank.")
   }
 }
 
@@ -137,8 +94,7 @@ func (x *User) ValidateEmail() {
   emailMatch := regex.MatchString(x.Email)
 
   if (!emailMatch) {
-    x.Errors = append(x.Errors, "Email address is invalid.")
-    x.ErrorMap["Email"] = true
+    x.ErrorOn("Email", "Email address is invalid.")
   }
 }
 
@@ -158,8 +114,7 @@ func (x *User) ValidateEmailUniqueness() {
   res.One(&count)
 
   if (count > 0) {
-    x.Errors = append(x.Errors, "That email address is already taken.")
-    x.ErrorMap["Email"] = true
+    x.ErrorOn("Email", "That email address is already taken.")
   }
 }
 
@@ -169,8 +124,7 @@ func (x *User) ValidateRequiredPassword() {
       x.SetPassword(x.Password)
     }
   } else {
-    x.Errors = append(x.Errors, "Password can't be blank.")
-    x.ErrorMap["Password"] = true
+    x.ErrorOn("Password", "Password can't be blank.")
   }
 }
 
@@ -188,7 +142,6 @@ func (x *User) Trimspace() {
   x.Email                = strings.TrimSpace(x.Email)
   x.PasswordConfirmation = strings.TrimSpace(x.PasswordConfirmation)
   x.Password             = strings.TrimSpace(x.Password)
-  x.IosPushToken         = strings.TrimSpace(x.IosPushToken)
 }
 
 //////////////////////////////
@@ -228,6 +181,14 @@ func (x *User) CheckPassword(password string) (success bool, err error) {
 //////////////////////////////
 // OTHER /////////////////////
 
+func (x *User) UpdateFromAttrs(attrs UserAttrs) {
+  if (attrs.NameFirst != "") { x.NameFirst = attrs.NameFirst }
+  if (attrs.NameLast != "") { x.NameLast = attrs.NameLast }
+  if (attrs.Email != "") { x.Email = attrs.Email }
+  if (attrs.Password != "") { x.Password = attrs.Password }
+  if (attrs.PasswordConfirmation != "") { x.PasswordConfirmation = attrs.PasswordConfirmation }
+}
+
 func (x *UserAttrs) User() (*User) {
   return &User{
     NameFirst: x.NameFirst,
@@ -235,18 +196,6 @@ func (x *UserAttrs) User() (*User) {
     Email: x.Email,
     Password: x.Password,
     PasswordConfirmation: x.PasswordConfirmation,
-    IosPushToken: x.IosPushToken,
-  }
-}
-
-func (x *User) UserAttrs() (*UserAttrs) {
-  return &UserAttrs{
-    NameFirst: x.NameFirst,
-    NameLast: x.NameLast,
-    Email: x.Email,
-    Password: x.Password,
-    PasswordConfirmation: x.PasswordConfirmation,
-    IosPushToken: x.IosPushToken,
   }
 }
 

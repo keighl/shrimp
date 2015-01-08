@@ -33,7 +33,6 @@ func SetupServerRoutes(server *martini.ClassicMartini) {
 
   // Me
   server.Get("/v1/users/me", api.Authorize, api.Me)
-  server.Get("/v1/users/me", api.Authorize, api.Me)
   server.Put("/v1/users/me", api.Authorize, binding.Bind(m.UserAttrs{}), api.MeUpdate)
 
   // Todos

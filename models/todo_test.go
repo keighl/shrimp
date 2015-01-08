@@ -5,106 +5,50 @@ import (
   "reflect"
 )
 
-func NewTodo() *Todo {
+func NewTestTodo() *Todo {
   return &Todo{
     Title: "cheese",
+    Complete: false,
   }
 }
 
+func Test_Todo_Table(t *testing.T) {
+  x := NewTestTodo()
+  expect(t, x.Table(), "todos")
+}
+
 func Test_Todo_Title_Presence(t *testing.T) {
-  x := &Todo{}
+  x := NewTestTodo()
   x.Title = ""
-  expect(t, x.Validate(), false)
+  err := Save(x)
+  refute(t, err, nil)
   expect(t, x.ErrorMap["Title"], true)
 
   x.Title = "TOOOODOOOO"
-  expect(t, x.Validate(), true)
+  err = Save(x)
+  expect(t, err, nil)
   expect(t, x.ErrorMap["Title"], false)
-}
-
-func Test_Todo_BeforeCreate(t *testing.T) {
-  x := &Todo{}
-  x.BeforeCreate()
-  refute(t, x.CreatedAt.Format("RFC3339"), nil)
-  refute(t, x.UpdatedAt.Format("RFC3339"), nil)
-}
-
-func Test_Todo_BeforeUpdate(t *testing.T) {
-  x := &Todo{}
-  x.BeforeUpdate()
-  refute(t, x.UpdatedAt.Format("RFC3339"), nil)
-}
-
-func Test_Todo_Create_Success(t *testing.T) {
-  setup(t)
-
-  x := NewTodo()
-  err := x.Save()
-  expect(t, err, nil)
-  refute(t, x.Id, "")
-}
-
-func Test_Todo_Create_Fail(t *testing.T) {
-  setup(t)
-
-  x := NewTodo()
-  x.Title  = ""
-  err := x.Save()
-  refute(t, err, nil)
-  expect(t, x.Id, "")
-}
-
-func Test_Todo_Update_Success(t *testing.T) {
-  setup(t)
-
-  x := NewTodo()
-  err := x.Save()
-  expect(t, err, nil)
-  refute(t, x.Id, "")
-
-  err = x.Save()
-  expect(t, err, nil)
-}
-
-func Test_Todo_Update_Fail(t *testing.T) {
-  setup(t)
-
-  x := NewTodo()
-  err := x.Save()
-  expect(t, err, nil)
-  refute(t, x.Id, "")
-
-  x.Title = ""
-  err = x.Save()
-  refute(t, err, nil)
-}
-
-func Test_Todo_Delete(t *testing.T) {
-  setup(t)
-
-  x := NewTodo()
-  err := x.Save()
-  expect(t, err, nil)
-  refute(t, x.Id, "")
-
-  err = x.Delete()
-  expect(t, err, nil)
 }
 
 /////////////////////////
 // ATTR CONVERSION //////
 
-func Test_Todo_TodoAttrs(t *testing.T) {
+func Test_Todo_UpdateAttrs(t *testing.T) {
   obj := &Todo{
     Title: "Thing",
     Complete: true,
   }
-  targetByMethod := obj.TodoAttrs()
-  targetByHand := &TodoAttrs{
-    Title: obj.Title,
-    Complete: obj.Complete,
+  attrs := TodoAttrs{
+    Title: "Thingz",
+    Complete: false,
   }
-  expect(t, reflect.DeepEqual(targetByHand, targetByMethod), true)
+  obj.UpdateFromAttrs(attrs)
+  targetByHand := &Todo{
+    Title: attrs.Title,
+    Complete: attrs.Complete,
+  }
+
+  expect(t, reflect.DeepEqual(targetByHand, obj), true)
 }
 
 func Test_TodoAttrs_Todo(t *testing.T) {

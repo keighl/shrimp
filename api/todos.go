@@ -22,11 +22,11 @@ func TodosIndex(r render.Render, user *m.User) {
   todos, err := loadTodos(user)
 
   if (err != nil) {
-    r.JSON(500, ApiMessageEnvelope(err.Error()))
+    r.JSON(500, MessageEnvelope(err.Error()))
     return
   }
 
-  data := &ApiData{User: user, Todos: todos}
+  data := &Data{User: user, Todos: todos}
   r.JSON(200, data)
 }
 
@@ -46,18 +46,18 @@ func TodosShow(params martini.Params, r render.Render, user *m.User) {
   todo, err := loadTodo(params["todo_id"], user)
 
   if (todo == nil || err != nil) {
-    r.JSON(404, ApiMessageEnvelope("Record not found"))
+    r.JSON(404, MessageEnvelope("Record not found"))
     return
   }
 
-  data := &ApiData{CurrentUser: user, Todo: todo}
+  data := &Data{CurrentUser: user, Todo: todo}
   r.JSON(200, data)
 }
 
 /////////////////////////
 
 var saveTodo = func(todo *m.Todo) (error) {
-  return todo.Save()
+  return m.Save(todo)
 }
 
 func TodosCreate(r render.Render, user *m.User, attrs m.TodoAttrs) {
@@ -67,14 +67,14 @@ func TodosCreate(r render.Render, user *m.User, attrs m.TodoAttrs) {
 
   if (err != nil) {
     if (todo.HasErrors()) {
-      r.JSON(400, ApiErrorEnvelope(err.Error(), todo.Errors))
+      r.JSON(400, ErrorEnvelope(err.Error(), todo.Errors))
     } else {
-      r.JSON(500, Api500Envelope())
+      r.JSON(500, ServerErrorEnvelope())
     }
     return
   }
 
-  data := &ApiData{CurrentUser: user, Todo: todo}
+  data := &Data{CurrentUser: user, Todo: todo}
   r.JSON(201, data)
 }
 
@@ -84,46 +84,47 @@ func TodosUpdate(params martini.Params, r render.Render, user *m.User, attrs m.T
   todo, err := loadTodo(params["todo_id"], user)
 
   if (todo == nil || err != nil) {
-    r.JSON(404, ApiMessageEnvelope("Record not found"))
+    r.JSON(404, MessageEnvelope("Record not found"))
     return
   }
 
+  todo.UpdateFromAttrs(attrs)
   err = saveTodo(todo)
 
   if (err != nil) {
     if (todo.HasErrors()) {
-      r.JSON(400, ApiErrorEnvelope(err.Error(), todo.Errors))
+      r.JSON(400, ErrorEnvelope(err.Error(), todo.Errors))
     } else {
-      r.JSON(500, Api500Envelope())
+      r.JSON(500, ServerErrorEnvelope())
     }
     return
   }
 
-  data := &ApiData{CurrentUser: user, Todo: todo}
+  data := &Data{CurrentUser: user, Todo: todo}
   r.JSON(200, data)
 }
 
 /////////////////////////
 
 var deleteTodo = func(todo *m.Todo) (error) {
-  return todo.Delete()
+  return m.Delete(todo)
 }
 
 func TodosDelete(params martini.Params, r render.Render, user *m.User) {
   todo, err := loadTodo(params["todo_id"], user)
 
   if (todo == nil || err != nil) {
-    r.JSON(404, ApiMessageEnvelope("Record not found"))
+    r.JSON(404, MessageEnvelope("Record not found"))
     return
   }
 
   err = deleteTodo(todo)
 
   if (err != nil) {
-    r.JSON(400, ApiMessageEnvelope("Couldn't delete the item"))
+    r.JSON(400, MessageEnvelope("Couldn't delete the item"))
     return
   }
 
-  data := &ApiData{CurrentUser: user, ApiMessage: &ApiMessage{"The todo was deleted"}}
+  data := &Data{CurrentUser: user, Message: &Message{"The todo was deleted"}}
   r.JSON(200, data)
 }

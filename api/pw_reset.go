@@ -16,14 +16,14 @@ import (
 /////////////////////
 
 var savePasswordReset = func(reset *m.PasswordReset) error {
-  return reset.Save()
+  return m.Save(reset)
 }
 
 func PasswordResetCreate(r render.Render, attrs m.PasswordResetAttrs) {
 
   user := userFromEmail(strings.TrimSpace(attrs.Email))
   if (user == nil) {
-    r.JSON(400, ApiErrorEnvelope("That email isn't in our system!", []string{}))
+    r.JSON(400, ErrorEnvelope("That email isn't in our system!", []string{}))
     return
   }
 
@@ -33,33 +33,33 @@ func PasswordResetCreate(r render.Render, attrs m.PasswordResetAttrs) {
 
   if (err != nil) {
     if (reset.HasErrors()) {
-      r.JSON(400, ApiErrorEnvelope(err.Error(), reset.Errors))
+      r.JSON(400, ErrorEnvelope(err.Error(), reset.Errors))
     } else {
-      r.JSON(500, Api500Envelope())
+      r.JSON(500, ServerErrorEnvelope())
     }
     return
   }
 
   message, err := PasswordResetEmailMessage(user, reset)
   if (err != nil) {
-    r.JSON(500, Api500Envelope())
+    r.JSON(500, ServerErrorEnvelope())
     return
   }
 
   if !sendEmail(message) {
-    r.JSON(500, Api500Envelope())
+    r.JSON(500, ServerErrorEnvelope())
     return
   }
 
-  data := &ApiData{PasswordReset: reset}
+  data := &Data{PasswordReset: reset}
   r.JSON(201, data)
 }
 
 /////////////////////
 
-var loadPasswordReset = func(token string) (*m.PasswordReset, error) {
+var loadPasswordReset = func(id string) (*m.PasswordReset, error) {
   reset := &m.PasswordReset{}
-  res, err := r.Table("password_resets").GetAllByIndex("token", token).Run(DB)
+  res, err := r.Table("password_resets").Get(id).Run(DB)
   if (err != nil) { return nil, err }
   err = res.One(reset)
   if (err != nil) { return nil, err }
@@ -73,18 +73,18 @@ func PasswordResetUpdate(params martini.Params, r render.Render, attrs m.UserAtt
   reset, err := loadPasswordReset(params["token"])
 
   if (err != nil) {
-    r.JSON(400, ApiErrorEnvelope("Invalid password reset token", nil))
+    r.JSON(400, ErrorEnvelope("Invalid password reset token", nil))
     return
   }
 
   if (reset.ExpiresAt.Before(time.Now())) {
-    r.JSON(400, ApiErrorEnvelope("The reset token has expired", nil))
+    r.JSON(400, ErrorEnvelope("The reset token has expired", nil))
     return
   }
 
   user, err := loadUser(reset.UserId)
   if (err != nil) {
-    r.JSON(500, Api500Envelope())
+    r.JSON(500, ServerErrorEnvelope())
     return
   }
 
@@ -94,9 +94,9 @@ func PasswordResetUpdate(params martini.Params, r render.Render, attrs m.UserAtt
 
   if (err != nil) {
     if (user.HasErrors()) {
-      r.JSON(400, ApiErrorEnvelope(err.Error(), user.Errors))
+      r.JSON(400, ErrorEnvelope(err.Error(), user.Errors))
     } else {
-      r.JSON(500, Api500Envelope())
+      r.JSON(500, ServerErrorEnvelope())
     }
     return
   }
@@ -107,7 +107,7 @@ func PasswordResetUpdate(params martini.Params, r render.Render, attrs m.UserAtt
     // TODO notify us
   }
 
-  r.JSON(200, ApiMessageEnvelope("Your password was reset"))
+  r.JSON(200, MessageEnvelope("Your password was reset"))
 }
 
 ////////////////////////
@@ -119,7 +119,7 @@ type ResetPasswordEmailData struct {
 }
 
 func (x *ResetPasswordEmailData) ResetURL() string {
-  return Config.BaseURL + "password-reset/" + x.PasswordReset.Token
+  return Config.BaseURL + "password-reset/" + x.PasswordReset.Id
 }
 
 func PasswordResetEmailMessage(user *m.User, reset *m.PasswordReset) (*mandrill.Message, error) {

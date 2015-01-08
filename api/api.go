@@ -15,11 +15,11 @@ var  (
 //////////////////////////////
 // API DATA //////////////////
 
-type ApiData struct {
+type Data struct {
   CurrentUser *m.User `json:"current_user,omitempty"`
-  ApiToken string `json:"api_token,omitempty"`
-  *ApiError `json:"error,omitempty"`
-  *ApiMessage `json:"message,omitempty"`
+  Token string `json:"api_token,omitempty"`
+  *Error `json:"error,omitempty"`
+  *Message `json:"message,omitempty"`
   *m.User `json:"user,omitempty"`
   *m.Todo `json:"todo,omitempty"`
   *m.PasswordReset `json:"password_reset,omitempty"`
@@ -29,33 +29,33 @@ type ApiData struct {
 //////////////////////////////
 // API MESSAGE ///////////////
 
-type ApiMessage struct {
+type Message struct {
   Message string `json:"message,omitempty"`
 }
 
 //////////////////////////////
 // API ERROR /////////////////
 
-type ApiError struct {
+type Error struct {
   Message string `json:"message,omitempty"`
   Details []string `json:"details,omitempty"`
 }
 
-func Api500Envelope() (ApiData) {
-  data := ApiData{}
-  data.ApiError = &ApiError{"There was an unexpected error!", []string{}}
+func ServerErrorEnvelope() (Data) {
+  data := Data{}
+  data.Error = &Error{"There was an unexpected error!", []string{}}
   return data
 }
 
-func ApiErrorEnvelope(message string, details []string) (ApiData) {
-  data := ApiData{}
-  data.ApiError = &ApiError{message, details}
+func ErrorEnvelope(message string, details []string) (Data) {
+  data := Data{}
+  data.Error = &Error{message, details}
   return data
 }
 
-func ApiMessageEnvelope(message string) (ApiData) {
-  data := ApiData{}
-  data.ApiMessage = &ApiMessage{message}
+func MessageEnvelope(message string) (Data) {
+  data := Data{}
+  data.Message = &Message{message}
   return data
 }
 
@@ -64,7 +64,7 @@ func ApiMessageEnvelope(message string) (ApiData) {
 
 var sendEmail = func(message *mandrill.Message) (bool) {
   client := mandrill.ClientWithKey(Config.MandrillAPIKey)
-  _, apiError, err := client.MessagesSend(message)
-  if (apiError != nil || err != nil) { return false }
+  _, Error, err := client.MessagesSend(message)
+  if (Error != nil || err != nil) { return false }
   return true
 }

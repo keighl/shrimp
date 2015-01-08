@@ -29,7 +29,7 @@ func Authorize(c martini.Context, r render.Render, req *http.Request) {
   user := userFromToken(token)
 
   if (user == nil) {
-    r.JSON(401, ApiErrorEnvelope("Your token is invalid!", []string{}))
+    r.JSON(401, ErrorEnvelope("Your token is invalid!", []string{}))
     return
   }
 
@@ -50,17 +50,17 @@ var userFromEmail = func(email string) *m.User {
 func Login(r render.Render, attrs m.UserAttrs) {
   user := userFromEmail(strings.TrimSpace(attrs.Email))
   if (user == nil) {
-    r.JSON(401, ApiErrorEnvelope("Your email or password is invalid!", []string{}))
+    r.JSON(401, ErrorEnvelope("Your email or password is invalid!", []string{}))
     return
   }
 
   success, err := user.CheckPassword(strings.TrimSpace(attrs.Password))
 
   if (err != nil || !success) {
-    r.JSON(401, ApiErrorEnvelope("Your email or password is invalid!", []string{}))
+    r.JSON(401, ErrorEnvelope("Your email or password is invalid!", []string{}))
     return
   }
 
-  data := &ApiData{ApiToken: user.ApiToken, CurrentUser: user}
+  data := &Data{Token: user.APIToken, CurrentUser: user}
   r.JSON(200, data)
 }
