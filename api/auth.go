@@ -61,6 +61,6 @@ func Login(r render.Render, attrs m.UserAttrs) {
     return
   }
 
-  data := &Data{Token: user.APIToken, CurrentUser: user}
+  data := &Data{APIToken: user.APIToken, User: user}
   r.JSON(200, data)
 }

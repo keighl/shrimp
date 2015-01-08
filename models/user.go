@@ -106,10 +106,12 @@ func (x *User) ValidateEmailUniqueness() {
     return row.Field("email").Eq(x.Email).And(row.Field("id").Ne(x.Id))
   }
 
-  res, _ := r.Table("users").
+  res, err := r.Table("users").
     Filter(filter).
     Count().
     Run(DB)
+
+  if (err != nil) { panic(err) }
 
   res.One(&count)
 

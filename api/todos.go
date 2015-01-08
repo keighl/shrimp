@@ -8,6 +8,16 @@ import (
   "errors"
 )
 
+type TodoData struct {
+  *m.User `json:"user,omitempty"`
+  *m.Todo `json:"todo"`
+}
+
+type TodosData struct {
+  *m.User `json:"user,omitempty"`
+  Todos []m.Todo `json:"todos"`
+}
+
 ////////////////////////
 
 var loadTodos = func(u *m.User) ([]m.Todo, error) {
@@ -26,7 +36,7 @@ func TodosIndex(r render.Render, user *m.User) {
     return
   }
 
-  data := &Data{User: user, Todos: todos}
+  data := TodosData{User: user, Todos: todos}
   r.JSON(200, data)
 }
 
@@ -50,7 +60,7 @@ func TodosShow(params martini.Params, r render.Render, user *m.User) {
     return
   }
 
-  data := &Data{CurrentUser: user, Todo: todo}
+  data := TodoData{User: user, Todo: todo}
   r.JSON(200, data)
 }
 
@@ -74,7 +84,7 @@ func TodosCreate(r render.Render, user *m.User, attrs m.TodoAttrs) {
     return
   }
 
-  data := &Data{CurrentUser: user, Todo: todo}
+  data := TodoData{User: user, Todo: todo}
   r.JSON(201, data)
 }
 
@@ -100,7 +110,7 @@ func TodosUpdate(params martini.Params, r render.Render, user *m.User, attrs m.T
     return
   }
 
-  data := &Data{CurrentUser: user, Todo: todo}
+  data := TodoData{User: user, Todo: todo}
   r.JSON(200, data)
 }
 
@@ -125,6 +135,6 @@ func TodosDelete(params martini.Params, r render.Render, user *m.User) {
     return
   }
 
-  data := &Data{CurrentUser: user, Message: &Message{"The todo was deleted"}}
+  data := Data{User: user, Message: &Message{"The todo was deleted"}}
   r.JSON(200, data)
 }

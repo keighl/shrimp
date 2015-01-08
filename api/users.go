@@ -33,14 +33,14 @@ func UserCreate(r render.Render, attrs m.UserAttrs) {
     return
   }
 
-  data := &Data{User: user, CurrentUser: user, Token: user.APIToken}
+  data := &Data{User: user, APIToken: user.APIToken}
   r.JSON(201, data)
 }
 
 //////////////////////////////////////
 
 func Me(r render.Render, user *m.User) {
-  data := &Data{User: user, CurrentUser: user}
+  data := &Data{User: user}
   r.JSON(200, data)
 }
 
@@ -59,7 +59,7 @@ func MeUpdate(r render.Render, user *m.User, attrs m.UserAttrs) {
     return
   }
 
-  data := &Data{User: user, CurrentUser: user}
+  data := &Data{User: user}
   r.JSON(200, data)
 }
 

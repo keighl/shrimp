@@ -14,11 +14,12 @@ func main() {
   config := u.ConfigForFile("config/app.json")
   DB := u.RethinkSession(config)
   api.DB = DB
+  m.DB = DB
   api.Config = u.ConfigForFile("config/app.json")
   server := u.MartiniServer(config.ServerLoggingEnabled)
   SetupServerRoutes(server)
   server.Run() // Blocks....
-  DB.Close()
+  // DB.Close()
 }
 
 func SetupServerRoutes(server *martini.ClassicMartini) {

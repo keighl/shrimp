@@ -16,14 +16,13 @@ var  (
 // API DATA //////////////////
 
 type Data struct {
-  CurrentUser *m.User `json:"current_user,omitempty"`
-  Token string `json:"api_token,omitempty"`
+  *m.User `json:"user,omitempty"`
+  APIToken string `json:"api_token,omitempty"`
   *Error `json:"error,omitempty"`
   *Message `json:"message,omitempty"`
-  *m.User `json:"user,omitempty"`
   *m.Todo `json:"todo,omitempty"`
-  *m.PasswordReset `json:"password_reset,omitempty"`
   Todos []m.Todo `json:"todos,omitempty"`
+  *m.PasswordReset `json:"password_reset,omitempty"`
 }
 
 //////////////////////////////

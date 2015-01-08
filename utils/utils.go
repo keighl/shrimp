@@ -31,10 +31,13 @@ func ConfigForFile(confFile string) *Configuration {
 }
 
 func RethinkSession(conf *Configuration) *r.Session {
-  session, _ := r.Connect(r.ConnectOpts{
+  session, err := r.Connect(r.ConnectOpts{
     Address:  conf.RethinkHost,
     Database: conf.RethinkDatabase,
   })
+  if (err != nil) {
+    panic(err)
+  }
   return session
 }
 
