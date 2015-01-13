@@ -116,10 +116,19 @@ func Test_Route_PasswordReset_Update_Expired(t *testing.T) {
   resetPasswordUpdateRunner(t, http.StatusBadRequest)
 }
 
+func Test_Route_PasswordReset_Update_Inactive(t *testing.T) {
+  loadPasswordReset = func(token string) (*m.PasswordReset, error) {
+    expect(t, token, "XXXXXX")
+    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour), Active: false}
+    return pwr, nil
+  }
+  resetPasswordUpdateRunner(t, http.StatusBadRequest)
+}
+
 func Test_Route_PasswordReset_Update_NoUser(t *testing.T) {
   loadPasswordReset = func(token string) (*m.PasswordReset, error) {
     expect(t, token, "XXXXXX")
-    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour)}
+    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour), Active: true}
     return pwr, nil
   }
 
@@ -133,7 +142,7 @@ func Test_Route_PasswordReset_Update_NoUser(t *testing.T) {
 func Test_Route_PasswordReset_Update_Success(t *testing.T) {
   loadPasswordReset = func(token string) (*m.PasswordReset, error) {
     expect(t, token, "XXXXXX")
-    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour)}
+    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour), Active: true}
     return pwr, nil
   }
 
@@ -151,7 +160,7 @@ func Test_Route_PasswordReset_Update_Success(t *testing.T) {
 func Test_Route_PasswordReset_Update_Fail400(t *testing.T) {
   loadPasswordReset = func(token string) (*m.PasswordReset, error) {
     expect(t, token, "XXXXXX")
-    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour)}
+    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour), Active: true}
     return pwr, nil
   }
 
@@ -171,7 +180,7 @@ func Test_Route_PasswordReset_Update_Fail400(t *testing.T) {
 func Test_Route_PasswordReset_Update_Fail500(t *testing.T) {
   loadPasswordReset = func(token string) (*m.PasswordReset, error) {
     expect(t, token, "XXXXXX")
-    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour)}
+    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour), Active: true}
     return pwr, nil
   }
 
@@ -189,7 +198,7 @@ func Test_Route_PasswordReset_Update_Fail500(t *testing.T) {
 func Test_Route_PasswordReset_Update_FailMessage(t *testing.T) {
   loadPasswordReset = func(token string) (*m.PasswordReset, error) {
     expect(t, token, "XXXXXX")
-    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour)}
+    pwr := &m.PasswordReset{ExpiresAt: time.Now().Add(6*time.Hour), Active: true}
     return pwr, nil
   }
 

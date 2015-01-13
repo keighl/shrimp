@@ -20,8 +20,6 @@ type Data struct {
   APIToken string `json:"api_token,omitempty"`
   *Error `json:"error,omitempty"`
   *Message `json:"message,omitempty"`
-  *m.Todo `json:"todo,omitempty"`
-  Todos []m.Todo `json:"todos,omitempty"`
   *m.PasswordReset `json:"password_reset,omitempty"`
 }
 

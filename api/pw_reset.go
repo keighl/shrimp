@@ -40,16 +40,16 @@ func PasswordResetCreate(r render.Render, attrs m.PasswordResetAttrs) {
     return
   }
 
-  // message, err := PasswordResetEmailMessage(user, reset)
-  // if (err != nil) {
-  //   r.JSON(500, ServerErrorEnvelope())
-  //   return
-  // }
+  message, err := PasswordResetEmailMessage(user, reset)
+  if (err != nil) {
+    r.JSON(500, ServerErrorEnvelope())
+    return
+  }
 
-  // if !sendEmail(message) {
-  //   r.JSON(500, ServerErrorEnvelope())
-  //   return
-  // }
+  if !sendEmail(message) {
+    r.JSON(500, ServerErrorEnvelope())
+    return
+  }
 
   data := &Data{PasswordReset: reset}
   r.JSON(201, data)
@@ -83,7 +83,7 @@ func PasswordResetUpdate(params martini.Params, r render.Render, attrs m.UserAtt
   }
 
   if (!reset.Active) {
-    r.JSON(400, ErrorEnvelope("The reset token has expired", nil))
+    r.JSON(400, ErrorEnvelope("The reset token has been used", nil))
     return
   }
 
