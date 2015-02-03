@@ -1,7 +1,7 @@
 package api
 
 import (
-  u "shrimp/utils"
+  u "github.com/keighl/shrimp/utils"
   "testing"
   "net/http/httptest"
   "github.com/go-martini/martini"

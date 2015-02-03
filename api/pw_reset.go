@@ -1,8 +1,8 @@
 package api
 
 import (
-  m "shrimp/models"
-  "shrimp/utils"
+  m "github.com/keighl/shrimp/models"
+  "github.com/keighl/shrimp/utils"
   "github.com/martini-contrib/render"
   "github.com/keighl/mandrill"
   "github.com/go-martini/martini"

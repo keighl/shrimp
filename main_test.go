@@ -2,7 +2,7 @@ package main
 
 import (
   "testing"
-  u "shrimp/utils"
+  u "github.com/keighl/shrimp/utils"
 )
 
 func Test_SetupSever(t *testing.T) {

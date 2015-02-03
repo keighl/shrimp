@@ -2,7 +2,7 @@ package api
 
 import (
   "testing"
-  m "shrimp/models"
+  m "github.com/keighl/shrimp/models"
   "net/http"
   "errors"
   "bytes"

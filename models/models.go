@@ -1,7 +1,7 @@
 package models
 
 import (
-  u "shrimp/utils"
+  u "github.com/keighl/shrimp/utils"
   r "github.com/dancannon/gorethink"
   "errors"
   "time"

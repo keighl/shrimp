@@ -2,9 +2,9 @@ package main
 
 import (
   "os"
-  "shrimp/api"
-  m "shrimp/models"
-  u "shrimp/utils"
+  "github.com/keighl/shrimp/api"
+  m "github.com/keighl/shrimp/models"
+  u "github.com/keighl/shrimp/utils"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/binding"
   r "github.com/dancannon/gorethink"

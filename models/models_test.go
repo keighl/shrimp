@@ -3,7 +3,7 @@ package models
 import (
   "testing"
   "reflect"
-  u "shrimp/utils"
+  u "github.com/keighl/shrimp/utils"
   r "github.com/dancannon/gorethink"
   "github.com/dchest/uniuri"
   "sync"

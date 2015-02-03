@@ -1,7 +1,7 @@
 package api
 
 import (
-  m "shrimp/models"
+  m "github.com/keighl/shrimp/models"
   "github.com/martini-contrib/render"
   r "github.com/dancannon/gorethink"
 )

@@ -1,8 +1,8 @@
 package api
 
 import (
-  m "shrimp/models"
-  u "shrimp/utils"
+  m "github.com/keighl/shrimp/models"
+  u "github.com/keighl/shrimp/utils"
   "github.com/keighl/mandrill"
   r "github.com/dancannon/gorethink"
 )
