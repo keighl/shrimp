@@ -3,9 +3,6 @@ language: go
 go:
   - tip
 
-before_install:
-  - cp utils/config.go.example utils/config.go
-
 before_script:
   - "source /etc/lsb-release && echo \"deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main\" | sudo tee /etc/apt/sources.list.d/rethinkdb.list"
   - wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
@@ -14,9 +11,11 @@ before_script:
   - sudo rethinkdb --daemon
   - cp utils/config.go.example utils/config.go
 
-# before_install:
-#   - go get github.com/axw/gocov/gocov
-#   - go get github.com/mattn/goveralls
-#   - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
-# script:
-#   - $HOME/gopath/bin/goveralls -service=travis-ci
+before_install:
+  - cp utils/config.go.example utils/config.go
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+  - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+
+script:
+  - $HOME/gopath/bin/goveralls -service=travis-ci
