@@ -14,8 +14,12 @@ before_script:
 before_install:
   - cp utils/config.go.example utils/config.go
   - go get github.com/axw/gocov/gocov
+  - go get github.com/modocache/gover
   - go get github.com/mattn/goveralls
-  - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+  - go get golang.org/x/tools/cmd/cover
 
 script:
-  - $HOME/gopath/bin/goveralls -service=travis-ci
+
+  - go test ./...
+  - $HOME/gopath/bin/gover
+  - $HOME/gopath/bin/goveralls -coverprofile=gover.coverprofile -service travis-ci
