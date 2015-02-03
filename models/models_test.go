@@ -6,15 +6,34 @@ import (
   u "shrimp/utils"
   r "github.com/dancannon/gorethink"
   "github.com/dchest/uniuri"
+  "sync"
 )
 
 func init() {
-  Config = u.ConfigForFile("../config/test.json")
-  DB = u.RethinkSession(Config)
+  Config = u.Config("test")
+  DB, _ = u.RethinkSession(Config)
 
-  _, _ = r.Table("users").Delete().RunWrite(DB)
-  _, _ = r.Table("password_resets").Delete().RunWrite(DB)
-  _, _ = r.Table("todos").Delete().RunWrite(DB)
+  r.DbDrop(Config.RethinkDatabase).Exec(DB)
+  r.DbCreate(Config.RethinkDatabase).Exec(DB)
+
+  tables := []string{
+    new(Record).Table(),
+    new(User).Table(),
+    new(PasswordReset).Table(),
+    new(Todo).Table(),
+  }
+
+  var wg sync.WaitGroup
+  for _, t := range tables {
+    wg.Add(1)
+    go func(table string) {
+      r.Db(Config.RethinkDatabase).TableCreate(table).RunWrite(DB)
+      r.Table(table).Delete().RunWrite(DB)
+      wg.Done()
+    }(t)
+  }
+
+  wg.Wait()
 }
 
 func expect(t *testing.T, a interface{}, b interface{}) {
@@ -37,23 +56,23 @@ func Test_Record_Save_NewRecord_Success(t *testing.T) {
   x := &Record{}
   err := Save(x)
   expect(t, err, nil)
-  refute(t, x.Id, "")
+  refute(t, x.ID, "")
 
-  res, err := r.Table(x.Table()).Get(x.Id).Run(DB)
+  res, err := r.Table(x.Table()).Get(x.ID).Run(DB)
   expect(t, err, nil)
   y := &Record{}
   err = res.One(y)
   expect(t, err, nil)
-  expect(t, y.Id, x.Id)
+  expect(t, y.ID, x.ID)
 }
 
-func Test_Record_Save_NewRecord_Success_PresetId(t *testing.T) {
+func Test_Record_Save_NewRecord_Success_PresetID(t *testing.T) {
   x := &Record{}
   id := uniuri.NewLen(30)
-  x.Id = id
+  x.ID = id
   err := Save(x)
   expect(t, err, nil)
-  expect(t, x.Id, id)
+  expect(t, x.ID, id)
 }
 
 type RecordFAILInvalid struct {
@@ -96,7 +115,7 @@ func Test_Record_Save_ExistingRecord_ErrorValidation(t *testing.T) {
   expect(t, err, nil)
 
   y := &RecordFAILInvalid{}
-  y.Id = y.Id
+  y.ID = y.ID
   err = Save(y)
   refute(t, err, nil)
 }
@@ -107,7 +126,7 @@ func Test_Record_Save_ExistingRecord_ErrorDB(t *testing.T) {
   expect(t, err, nil)
 
   y := &RecordFAILDB{}
-  y.Id = x.Id
+  y.ID = x.ID
   err = Save(y)
   refute(t, err, nil)
 }
@@ -120,7 +139,7 @@ func Test_Record_Delete_Success(t *testing.T) {
   err = Delete(x)
   expect(t, err, nil)
 
-  res, _ := r.Table(x.Table()).Get(x.Id).Run(DB)
+  res, _ := r.Table(x.Table()).Get(x.ID).Run(DB)
   expect(t, res.IsNil(), true)
 }
 
@@ -130,7 +149,7 @@ func Test_Record_Delete_FailDB(t *testing.T) {
   expect(t, err, nil)
 
   y := &RecordFAILDB{}
-  x.Id = x.Id
+  x.ID = x.ID
   err = Delete(y)
   refute(t, err, nil)
 }
@@ -143,7 +162,7 @@ func Test_Record_NewRecord(t *testing.T) {
   x := &Record{}
   expect(t, x.IsNewRecord(), true)
 
-  x.Id = "CHESE"
+  x.ID = "CHESE"
   expect(t, x.IsNewRecord(), false)
 }
 
@@ -183,16 +202,16 @@ func Test_Record_HasErrors(t *testing.T) {
   expect(t, x.HasErrors(), true)
 }
 
-func Test_Record_SetId(t *testing.T) {
+func Test_Record_SetID(t *testing.T) {
   x := &Record{}
-  x.SetId("CHEESE")
-  expect(t, x.Id, "CHEESE")
+  x.SetID("CHEESE")
+  expect(t, x.ID, "CHEESE")
 }
 
-func Test_Record_GetId(t *testing.T) {
+func Test_Record_GetID(t *testing.T) {
   x := &Record{}
-  x.Id = "CHEESE"
-  expect(t, x.GetId(), "CHEESE")
+  x.ID = "CHEESE"
+  expect(t, x.GetID(), "CHEESE")
 }
 
 

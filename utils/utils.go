@@ -1,50 +1,23 @@
 package utils
 
 import (
-  "os"
-  "encoding/json"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/render"
   "github.com/martini-contrib/cors"
-  _ "github.com/go-sql-driver/mysql"
   r "github.com/dancannon/gorethink"
 )
 
-type Configuration struct {
-  AppName string
-  BaseURL string
-  RethinkHost string
-  RethinkDatabase string
-  ServerLoggingEnabled bool
-  MandrillAPIKey string
-}
-
-func ConfigForFile(confFile string) *Configuration {
-  file, err := os.Open(confFile)
-  if (err != nil) { panic(err) }
-  decoder := json.NewDecoder(file)
-  c := &Configuration{}
-  err = decoder.Decode(c)
-  if (err != nil) { panic(err) }
-  file.Close()
-  return c
-}
-
-func RethinkSession(conf *Configuration) *r.Session {
-  session, err := r.Connect(r.ConnectOpts{
+func RethinkSession(conf *Configuration) (*r.Session, error) {
+  return r.Connect(r.ConnectOpts{
     Address:  conf.RethinkHost,
     Database: conf.RethinkDatabase,
   })
-  if (err != nil) {
-    panic(err)
-  }
-  return session
 }
 
-func MartiniServer(logginEnabled bool) (*martini.ClassicMartini) {
+func MartiniServer(conf *Configuration) (*martini.ClassicMartini) {
   router := martini.NewRouter()
   server := martini.New()
-  if (logginEnabled) { server.Use(martini.Logger()) }
+  if (conf.ServerLoggingEnabled) { server.Use(martini.Logger()) }
   server.Use(martini.Recovery())
   server.MapTo(router, (*martini.Routes)(nil))
   server.Action(router.Handle)
@@ -58,3 +31,6 @@ func MartiniServer(logginEnabled bool) (*martini.ClassicMartini) {
   }))
   return s
 }
+
+
+

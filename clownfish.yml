@@ -1,0 +1,20 @@
+# https://github.com/keighl/clownfish
+
+conn:
+  host: 0.0.0.0:28015
+  db: shrimp
+tables:
+
+  todos:
+    indices:
+      user_id:
+
+  password_resets:
+    indices:
+      user_id:
+
+  users:
+    indices:
+      api_token:
+      email:
+

@@ -9,12 +9,12 @@ import (
 )
 
 func init() {
-  Config = u.ConfigForFile("../config/test.json")
-  DB = u.RethinkSession(Config)
+  Config = u.Config("test")
+  DB, _ = u.RethinkSession(Config)
 }
 
 func testTools(t *testing.T) (*martini.ClassicMartini, *httptest.ResponseRecorder) {
-  return u.MartiniServer(false), httptest.NewRecorder()
+  return u.MartiniServer(Config), httptest.NewRecorder()
 }
 
 func expect(t *testing.T, a interface{}, b interface{}) {

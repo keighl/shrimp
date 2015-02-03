@@ -22,7 +22,7 @@ type TodosData struct {
 
 var loadTodos = func(u *m.User) ([]m.Todo, error) {
   todos := []m.Todo{}
-  res, err := r.Table("todos").OrderBy(r.Desc("created_at")).Run(DB)
+  res, err := r.Table("todos").GetAllByIndex(u.ID, "user_id").OrderBy(r.Desc("created_at")).Run(DB)
   if (err != nil) { return nil, err }
   err = res.All(&todos)
   return todos, err
@@ -48,7 +48,7 @@ var loadTodo = func(id string, u *m.User) (*m.Todo, error) {
   if (err != nil) { return nil, err }
   err = res.One(todo)
   if (err != nil) { return nil, err }
-  if (todo.UserId != u.Id) { return nil, errors.New("Not your todo") }
+  if (todo.UserID != u.ID) { return nil, errors.New("Not your todo") }
   return todo, err
 }
 
@@ -72,7 +72,7 @@ var saveTodo = func(todo *m.Todo) (error) {
 
 func TodosCreate(r render.Render, user *m.User, attrs m.TodoAttrs) {
   todo := attrs.Todo()
-  todo.UserId = user.Id
+  todo.UserID = user.ID
   err := saveTodo(todo)
 
   if (err != nil) {

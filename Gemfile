@@ -1,4 +1,7 @@
 source 'https://rubygems.org'
 
-gem 'rake'
-gem 'foreman'
+group :development do
+  gem 'capistrano', '2.14.2'
+  gem 'capistrano-ext'
+  gem 'capistrano_colors'
+end

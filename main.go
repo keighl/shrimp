@@ -1,25 +1,33 @@
 package main
 
 import (
+  "os"
   "shrimp/api"
   m "shrimp/models"
   u "shrimp/utils"
   "github.com/go-martini/martini"
   "github.com/martini-contrib/binding"
+  r "github.com/dancannon/gorethink"
 )
 
 /////////////////////////////
 
 func main() {
-  config := u.ConfigForFile("config/app.json")
-  DB := u.RethinkSession(config)
+  env := os.Getenv("MARTINI_ENV")
+  config := u.Config(env)
+  DB, _ := u.RethinkSession(config)
+  SetupSubpackages(DB, config)
+  server := u.MartiniServer(config)
+  SetupServerRoutes(server)
+  server.Run()
+  DB.Close()
+}
+
+func SetupSubpackages(DB *r.Session, config *u.Configuration) {
   api.DB = DB
   m.DB = DB
-  api.Config = u.ConfigForFile("config/app.json")
-  server := u.MartiniServer(config.ServerLoggingEnabled)
-  SetupServerRoutes(server)
-  server.Run() // Blocks....
-  // DB.Close()
+  api.Config = config
+  m.Config = config
 }
 
 func SetupServerRoutes(server *martini.ClassicMartini) {

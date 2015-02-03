@@ -1,0 +1,51 @@
+upstream app-<%= application %> {
+  server localhost:3000;
+}
+
+server {
+
+  listen 80;
+  server_name <%= nginx_server %>;
+  root <%= deploy_to %>/public;
+  error_page 500 503 504 /500.html;
+  error_page 502 /502.html;
+  client_max_body_size 10M;
+  keepalive_timeout 10;
+  sendfile          on;
+  gzip              on;
+  gzip_vary         on;
+  gzip_http_version 1.0;
+  gzip_comp_level   2;
+  gzip_proxied      any;
+  gzip_types        text/plain text/css application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+
+  location ^~ /assets/ {
+    gzip_static on;
+    expires max;
+    add_header Cache-Control public;
+    add_header 'Access-Control-Allow-Origin' '*';
+    add_header 'Access-Control-Allow-Credentials' 'true';
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+    add_header 'Access-Control-Allow-Headers' 'DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Contents-Type';
+  }
+
+  location / {
+    proxy_set_header  X-Real-IP  $remote_addr;
+    proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $http_host;
+    proxy_redirect off;
+
+    if (-f $request_filename/index.html) {
+       rewrite (.*) $1/index.html break;
+    }
+
+    if (-f $request_filename.html) {
+     rewrite (.*) $1.html break;
+    }
+
+    if (!-f $request_filename) {
+      proxy_pass http://app-<%= application %>;
+      break;
+    }
+  }
+}

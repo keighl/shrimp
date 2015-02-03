@@ -18,7 +18,7 @@ func NewTestUser() *User {
 
 func NewTestUserPersisted() *User {
   user := NewTestUser()
-  user.SetId(uniuri.NewLen(10))
+  user.SetID(uniuri.NewLen(10))
   return user
 }
 
@@ -149,7 +149,7 @@ func Test_User_Create_Requires_Password(t *testing.T) {
 
 func Test_User_Update_Optional_Password(t *testing.T) {
   x := NewTestUser()
-  x.SetId("XXXXX")
+  x.SetID("XXXXX")
   x.Password = "password"
   x.PasswordConfirmation = ""
   err := Save(x)

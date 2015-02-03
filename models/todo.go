@@ -7,7 +7,7 @@ import (
 type Todo struct {
   Record
   Title string `gorethink:"title" json:"title"`
-  UserId string `gorethink:"user_id" json:"-"`
+  UserID string `gorethink:"user_id" json:"-"`
   Complete bool `gorethink:"complete" json:"complete"`
 }
 

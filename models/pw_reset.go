@@ -6,7 +6,7 @@ import (
 
 type PasswordReset struct {
   Record
-  UserId string `gorethink:"user_id" json:"-"`
+  UserID string `gorethink:"user_id" json:"-"`
   Active bool `gorethink:"active" json:"-"`
   ExpiresAt time.Time `gorethink:"expires_at" json:"expires_at"`
 }
@@ -33,12 +33,12 @@ func (x *PasswordReset) BeforeCreate() {
 
 func (x *PasswordReset) Validate() {
   x.Record.Validate()
-  x.ValidateUserId()
+  x.ValidateUserID()
 }
 
-func (x *PasswordReset) ValidateUserId() {
-  if (x.UserId == "") {
-    x.ErrorOn("UserId", "UserId can't be blank.")
+func (x *PasswordReset) ValidateUserID() {
+  if (x.UserID == "") {
+    x.ErrorOn("UserID", "UserID can't be blank.")
   }
 }
 

@@ -1,0 +1,44 @@
+package utils
+
+type Configuration struct {
+  AppName string
+  BaseURL string
+  RethinkHost string
+  RethinkDatabase string
+  ServerLoggingEnabled bool
+  MandrillAPIKey string
+}
+
+func Config(env string) *Configuration {
+
+  if (env == "production") {
+    return &Configuration{
+      AppName: "Shrimp",
+      BaseURL: "http://api.example.com/",
+      RethinkHost: "0.0.0.0:28015",
+      RethinkDatabase: "shrimp",
+      ServerLoggingEnabled: true,
+      MandrillAPIKey: "XXXXXXXXX",
+    }
+  }
+
+  if (env == "test") {
+    return &Configuration{
+      AppName: "Shrimp",
+      BaseURL: "http://localhost:3000/",
+      RethinkHost: "0.0.0.0:28015",
+      RethinkDatabase: "shrimp_test",
+      ServerLoggingEnabled: false,
+      MandrillAPIKey: "XXXXXXXXX",
+    }
+  }
+
+  return &Configuration{
+    AppName: "Shrimp",
+    BaseURL: "http://localhost:3000/",
+    RethinkHost: "0.0.0.0:28015",
+    RethinkDatabase: "shrimp",
+    ServerLoggingEnabled: true,
+    MandrillAPIKey: "XXXXXXXXX",
+  }
+}

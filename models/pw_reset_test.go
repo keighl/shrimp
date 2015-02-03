@@ -7,7 +7,7 @@ import (
 
 func NewPasswordReset() *PasswordReset{
   return &PasswordReset{
-    UserId: "XXXXXXXXXXXX",
+    UserID: "XXXXXXXXXXXX",
   }
 }
 
@@ -16,27 +16,27 @@ func Test_PasswordReset_Table(t *testing.T) {
   expect(t, x.Table(), "password_resets")
 }
 
-func Test_PasswordReset_RequiresUserId(t *testing.T) {
+func Test_PasswordReset_RequiresUserID(t *testing.T) {
   x := &PasswordReset{}
   err := Save(x)
   refute(t, err, nil)
-  expect(t, x.ErrorMap["UserId"], true)
+  expect(t, x.ErrorMap["UserID"], true)
 
-  x.UserId = "XXXXXXXXXXXX"
+  x.UserID = "XXXXXXXXXXXX"
   err = Save(x)
   expect(t, err, nil)
-  expect(t, x.ErrorMap["UserId"], false)
+  expect(t, x.ErrorMap["UserID"], false)
 }
 
 func Test_PasswordReset_BeforeCreate(t *testing.T) {
-  x := &PasswordReset{UserId: "XXXXXXXXXXXX"}
+  x := &PasswordReset{UserID: "XXXXXXXXXXXX"}
   x.BeforeCreate()
   refute(t, x.CreatedAt.Format("RFC3339"), nil)
   expect(t, x.ExpiresAt.Format("RFC3339"), x.CreatedAt.Add(6*time.Hour).Format("RFC3339"))
 }
 
 func Test_PasswordReset_BeforeUpdate(t *testing.T) {
-  x := &PasswordReset{UserId: "XXXXXXXXXXXX"}
+  x := &PasswordReset{UserID: "XXXXXXXXXXXX"}
   x.BeforeUpdate()
   refute(t, x.UpdatedAt.Format("RFC3339"), nil)
 }

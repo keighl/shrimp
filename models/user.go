@@ -103,7 +103,7 @@ func (x *User) ValidateEmailUniqueness() {
   var count int
 
   filter := func(row r.Term) r.Term {
-    return row.Field("email").Eq(x.Email).And(row.Field("id").Ne(x.Id))
+    return row.Field("email").Eq(x.Email).And(row.Field("id").Ne(x.ID))
   }
 
   res, err := r.Table("users").

@@ -28,7 +28,7 @@ func PasswordResetCreate(r render.Render, attrs m.PasswordResetAttrs) {
   }
 
   reset := &m.PasswordReset{}
-  reset.UserId = user.Id
+  reset.UserID = user.ID
   err := savePasswordReset(reset)
 
   if (err != nil) {
@@ -87,7 +87,7 @@ func PasswordResetUpdate(params martini.Params, r render.Render, attrs m.UserAtt
     return
   }
 
-  user, err := loadUser(reset.UserId)
+  user, err := loadUser(reset.UserID)
   if (err != nil) {
     r.JSON(500, ServerErrorEnvelope())
     return
@@ -124,7 +124,7 @@ type ResetPasswordEmailData struct {
 }
 
 func (x *ResetPasswordEmailData) ResetURL() string {
-  return Config.BaseURL + "password-reset/" + x.PasswordReset.Id
+  return Config.BaseURL + "password-reset/" + x.PasswordReset.ID
 }
 
 func PasswordResetEmailMessage(user *m.User, reset *m.PasswordReset) (*mandrill.Message, error) {

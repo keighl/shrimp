@@ -1,2 +1,0 @@
-gin: gin
-rethinkdb: rethinkdb

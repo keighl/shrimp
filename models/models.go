@@ -15,8 +15,8 @@ var  (
 type Recorder interface {
   Table() string
 
-  GetId() string
-  SetId(string)
+  GetID() string
+  SetID(string)
   IsNewRecord() bool
 
   // Validation
@@ -60,7 +60,7 @@ func Save(x Recorder) error {
     res, err := r.Table(x.Table()).Insert(x).RunWrite(DB)
     if (err != nil) { return err }
     if (len(res.GeneratedKeys) > 0) {
-      x.SetId(res.GeneratedKeys[0])
+      x.SetID(res.GeneratedKeys[0])
     }
     x.AfterCreate()
     x.AfterSave()
@@ -68,7 +68,7 @@ func Save(x Recorder) error {
   }
 
   x.BeforeUpdate()
-  _, err := r.Table(x.Table()).Get(x.GetId()).Replace(x).RunWrite(DB)
+  _, err := r.Table(x.Table()).Get(x.GetID()).Replace(x).RunWrite(DB)
   if (err != nil) { return err }
   x.AfterUpdate()
   x.AfterSave()
@@ -77,7 +77,7 @@ func Save(x Recorder) error {
 
 func Delete(x Recorder) error {
   x.BeforeDelete()
-  _, err := r.Table(x.Table()).Get(x.GetId()).Delete().RunWrite(DB)
+  _, err := r.Table(x.Table()).Get(x.GetID()).Delete().RunWrite(DB)
   if (err != nil) { return err }
   x.AfterDelete()
   return nil
@@ -87,7 +87,7 @@ func Delete(x Recorder) error {
 //////////////////////////////
 
 type Record struct {
-  Id string `gorethink:"id,omitempty" json:"id"`
+  ID string `gorethink:"id,omitempty" json:"id"`
   CreatedAt time.Time `gorethink:"created_at" json:"created_at"`
   UpdatedAt time.Time `gorethink:"updated_at" json:"-"`
   Errors []string `gorethink:"-" json:"errors,omitempty"`
@@ -99,18 +99,18 @@ func (x *Record) Table() string {
 }
 
 func (x *Record) IsNewRecord() bool {
-  return x.GetId() == ""
+  return x.GetID() == ""
 }
 
 //////////////////////////////
 // ID ////////////////////////
 
-func (x *Record) GetId() string {
-  return x.Id
+func (x *Record) GetID() string {
+  return x.ID
 }
 
-func (x *Record) SetId(id string) {
-  x.Id = id
+func (x *Record) SetID(id string) {
+  x.ID = id
 }
 
 //////////////////////////////
