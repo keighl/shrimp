@@ -1,0 +1,64 @@
+package config
+
+import ()
+
+type Configuration struct {
+  AppName         string
+  Env             string
+  WorkerConfig    map[string]string
+  BaseURL         string
+  RethinkHost     string
+  RethinkDatabase string
+  MandrillAPIKey  string
+}
+
+func Config(env string) *Configuration {
+  if env == "production" {
+    return &Configuration{
+      AppName:         "shrimp",
+      BaseURL:         "http://api.example.com/",
+      RethinkHost:     "0.0.0.0:28015",
+      RethinkDatabase: "shrimp",
+      MandrillAPIKey:  "XXXXXXXXX",
+      Env:             env,
+      WorkerConfig: map[string]string{
+        "server":   "localhost:6379",
+        "database": "0",
+        "pool":     "30",
+        "process":  "1",
+      },
+    }
+  }
+
+  if env == "test" {
+    return &Configuration{
+      AppName:         "shrimp",
+      BaseURL:         "http://localhost:3000/",
+      RethinkHost:     "0.0.0.0:28015",
+      RethinkDatabase: "shrimp_test",
+      MandrillAPIKey:  "SANDBOX_SUCCESS",
+      Env:             env,
+      WorkerConfig: map[string]string{
+        "server":   "localhost:6379",
+        "database": "0",
+        "pool":     "30",
+        "process":  "1",
+      },
+    }
+  }
+
+  return &Configuration{
+    AppName:         "shrimp",
+    BaseURL:         "http://localhost:3000/",
+    RethinkHost:     "0.0.0.0:28015",
+    RethinkDatabase: "shrimp",
+    MandrillAPIKey:  "SANDBOX_SUCCESS",
+    Env:             env,
+    WorkerConfig: map[string]string{
+      "server":   "localhost:6379",
+      "database": "0",
+      "pool":     "30",
+      "process":  "1",
+    },
+  }
+}

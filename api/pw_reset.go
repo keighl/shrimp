@@ -1,148 +1,108 @@
-package api
+package main
 
 import (
-  m "github.com/keighl/shrimp/models"
-  "github.com/keighl/shrimp/utils"
-  "github.com/martini-contrib/render"
-  "github.com/keighl/mandrill"
-  "github.com/go-martini/martini"
-  "text/template"
-  "bytes"
-  "strings"
-  "time"
-  r "github.com/dancannon/gorethink"
+	"github.com/go-martini/martini"
+	"github.com/keighl/shrimp/comm"
+	m "github.com/keighl/shrimp/models"
+	"github.com/martini-contrib/render"
+	"strings"
+	"time"
 )
 
 /////////////////////
 
 var savePasswordReset = func(reset *m.PasswordReset) error {
-  return m.Save(reset)
+	return m.Save(reset, true)
 }
 
 func PasswordResetCreate(r render.Render, attrs m.PasswordResetAttrs) {
 
-  user := userFromEmail(strings.TrimSpace(attrs.Email))
-  if (user == nil) {
-    r.JSON(400, ErrorEnvelope("That email isn't in our system!", []string{}))
-    return
-  }
+	user := userFromEmail(strings.TrimSpace(attrs.Email))
+	if user == nil {
+		r.JSON(400, ErrorEnvelope("That email isn't in our system!", []string{}))
+		return
+	}
 
-  reset := &m.PasswordReset{}
-  reset.UserID = user.ID
-  err := savePasswordReset(reset)
+	reset := &m.PasswordReset{}
+	reset.UserID = user.ID
+	err := savePasswordReset(reset)
 
-  if (err != nil) {
-    if (reset.HasErrors()) {
-      r.JSON(400, ErrorEnvelope(err.Error(), reset.Errors))
-    } else {
-      r.JSON(500, ServerErrorEnvelope())
-    }
-    return
-  }
+	if err != nil {
+		if reset.HasErrors() {
+			r.JSON(400, ErrorEnvelope(err.Error(), reset.Errors))
+		} else {
+			r.JSON(500, ServerErrorEnvelope(err))
+		}
+		return
+	}
 
-  message, err := PasswordResetEmailMessage(user, reset)
-  if (err != nil) {
-    r.JSON(500, ServerErrorEnvelope())
-    return
-  }
+	err = comm.DeliverPasswordReset(reset, user)
 
-  if !sendEmail(message) {
-    r.JSON(500, ServerErrorEnvelope())
-    return
-  }
+	if err != nil {
+		r.JSON(500, ServerErrorEnvelope(err))
+		return
+	}
 
-  data := &Data{PasswordReset: reset}
-  r.JSON(201, data)
+	data := &Data{PasswordReset: reset}
+	r.JSON(201, data)
 }
 
 /////////////////////
 
 var loadPasswordReset = func(id string) (*m.PasswordReset, error) {
-  reset := &m.PasswordReset{}
-  res, err := r.Table("password_resets").Get(id).Run(DB)
-  if (err != nil) { return nil, err }
-  err = res.One(reset)
-  if (err != nil) { return nil, err }
-  return reset, err
+	reset := &m.PasswordReset{}
+	err := m.Find(reset, id)
+	if err != nil {
+		return nil, err
+	}
+	return reset, err
 }
 
 //////////////
 
 func PasswordResetUpdate(params martini.Params, r render.Render, attrs m.UserAttrs) {
 
-  reset, err := loadPasswordReset(params["token"])
+	reset, err := loadPasswordReset(params["token"])
 
-  if (err != nil) {
-    r.JSON(400, ErrorEnvelope("Invalid password reset token", nil))
-    return
-  }
+	if err != nil {
+		r.JSON(400, ErrorEnvelope("Invalid password reset token", nil))
+		return
+	}
 
-  if (reset.ExpiresAt.Before(time.Now())) {
-    r.JSON(400, ErrorEnvelope("The reset token has expired", nil))
-    return
-  }
+	if reset.ExpiresAt.Before(time.Now()) {
+		r.JSON(400, ErrorEnvelope("The reset token has expired", nil))
+		return
+	}
 
-  if (!reset.Active) {
-    r.JSON(400, ErrorEnvelope("The reset token has been used", nil))
-    return
-  }
+	if !reset.Active {
+		r.JSON(400, ErrorEnvelope("The reset token has been used", nil))
+		return
+	}
 
-  user, err := loadUser(reset.UserID)
-  if (err != nil) {
-    r.JSON(500, ServerErrorEnvelope())
-    return
-  }
+	user, err := loadUser(reset.UserID)
+	if err != nil {
+		r.JSON(500, ServerErrorEnvelope(err))
+		return
+	}
 
-  user.Password             = attrs.Password
-  user.PasswordConfirmation = attrs.PasswordConfirmation
-  err = saveUser(user)
+	user.Password = attrs.Password
+	user.PasswordConfirmation = attrs.PasswordConfirmation
+	err = saveUser(user)
 
-  if (err != nil) {
-    if (user.HasErrors()) {
-      r.JSON(400, ErrorEnvelope(err.Error(), user.Errors))
-    } else {
-      r.JSON(500, ServerErrorEnvelope())
-    }
-    return
-  }
+	if err != nil {
+		if user.HasErrors() {
+			r.JSON(400, ErrorEnvelope(err.Error(), user.Errors))
+		} else {
+			r.JSON(500, ServerErrorEnvelope(err))
+		}
+		return
+	}
 
-  reset.Active = false
-  err = savePasswordReset(reset)
-  if (err != nil) {
-    // TODO notify us
-  }
+	reset.Active = false
+	err = savePasswordReset(reset)
+	if err != nil {
+		r.JSON(500, ServerErrorEnvelope(err))
+	}
 
-  r.JSON(200, MessageEnvelope("Your password was reset"))
-}
-
-////////////////////////
-
-type ResetPasswordEmailData struct {
-  Config *utils.Configuration
-  User *m.User
-  PasswordReset *m.PasswordReset
-}
-
-func (x *ResetPasswordEmailData) ResetURL() string {
-  return Config.BaseURL + "password-reset/" + x.PasswordReset.ID
-}
-
-func PasswordResetEmailMessage(user *m.User, reset *m.PasswordReset) (*mandrill.Message, error) {
-  var textContent bytes.Buffer
-  resetData := &ResetPasswordEmailData{Config, user, reset}
-
-  t, err := template.ParseFiles("./emails/reset_password.text")
-  if (err != nil) { return nil, err }
-
-  err = t.Execute(&textContent, resetData)
-  if (err != nil) { return nil, err }
-
-  message := &mandrill.Message{}
-  message.AddRecipient(user.Email, user.FullName(), "to")
-  message.FromEmail = "reset@example.com"
-  message.FromName  = Config.AppName
-  message.Subject   = "Reset Your Password"
-  message.Text      = textContent.String()
-
-  return message, nil
+	r.JSON(200, MessageEnvelope("Your password was reset"))
 }

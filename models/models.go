@@ -1,151 +1,183 @@
 package models
 
 import (
-  u "github.com/keighl/shrimp/utils"
-  r "github.com/dancannon/gorethink"
-  "errors"
-  "time"
+	"errors"
+	r "github.com/dancannon/gorethink"
+	c "github.com/keighl/shrimp/config"
+	"log"
+	"math/rand"
+	"os"
+	"time"
 )
 
-var  (
-  Config *u.Configuration
-  DB *r.Session
+var (
+	Config *c.Configuration
+	DB     *r.Session
+	Logger = log.New(os.Stdout, "models: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 
-type Recorder interface {
-  Table() string
-
-  GetID() string
-  SetID(string)
-  IsNewRecord() bool
-
-  // Validation
-  BeforeValidate()
-  AfterValidate()
-  Validate()
-  HasErrors() (bool)
-  ErrorOn(attr string, message string)
-
-  // Save
-  BeforeSave()
-  AfterSave()
-
-  // Create
-  BeforeCreate()
-  AfterCreate()
-
-  // Update
-  BeforeUpdate()
-  AfterUpdate()
-
-  // Delete
-  BeforeDelete()
-  AfterDelete()
+func init() {
+	rand.Seed(time.Now().UnixNano())
+	Env(os.Getenv("SHRIMP_ENV"))
 }
 
-func Save(x Recorder) error {
+func Env(env string) {
+	Config = c.Config(env)
+	var err error
+	DB, err = r.Connect(r.ConnectOpts{
+		Address:  Config.RethinkHost,
+		Database: Config.RethinkDatabase,
+	})
+	if err != nil {
+		panic(err)
+	}
+}
 
-  x.BeforeValidate()
-  x.Validate()
-  x.AfterValidate()
+type Recorder interface {
+	Table() string
 
-  if (x.HasErrors()) {
-    return errors.New("Validation errors")
-  }
+	GetID() string
+	AssignID(string)
+	IsNewRecord() bool
 
-  x.BeforeSave()
+	// Validation
+	BeforeValidate()
+	PerformValidations()
+	AfterValidate()
+	HasErrors() bool
+	ErrorOn(attr string, message string)
 
-  if (x.IsNewRecord()) {
-    x.BeforeCreate()
-    res, err := r.Table(x.Table()).Insert(x).RunWrite(DB)
-    if (err != nil) { return err }
-    if (len(res.GeneratedKeys) > 0) {
-      x.SetID(res.GeneratedKeys[0])
-    }
-    x.AfterCreate()
-    x.AfterSave()
-    return nil
-  }
+	// Save
+	BeforeSave()
+	AfterSave()
 
-  x.BeforeUpdate()
-  _, err := r.Table(x.Table()).Get(x.GetID()).Replace(x).RunWrite(DB)
-  if (err != nil) { return err }
-  x.AfterUpdate()
-  x.AfterSave()
-  return nil
+	// Create
+	BeforeCreate()
+	AfterCreate()
+
+	// Update
+	BeforeUpdate()
+	AfterUpdate()
+
+	// Delete
+	BeforeDelete()
+	AfterDelete()
+}
+
+func Save(x Recorder, validate bool) error {
+
+	if validate {
+		Validate(x)
+		if x.HasErrors() {
+			return errors.New("Validation errors")
+		}
+	}
+
+	x.BeforeSave()
+
+	if x.IsNewRecord() {
+		x.BeforeCreate()
+		res, err := r.Table(x.Table()).Insert(x).RunWrite(DB)
+		if err != nil {
+			return err
+		}
+		if len(res.GeneratedKeys) > 0 {
+			x.AssignID(res.GeneratedKeys[0])
+		}
+		x.AfterCreate()
+		x.AfterSave()
+		return nil
+	}
+
+	x.BeforeUpdate()
+	_, err := r.Table(x.Table()).Get(x.GetID()).Replace(x).RunWrite(DB)
+	if err != nil {
+		return err
+	}
+	x.AfterUpdate()
+	x.AfterSave()
+	return nil
 }
 
 func Delete(x Recorder) error {
-  x.BeforeDelete()
-  _, err := r.Table(x.Table()).Get(x.GetID()).Delete().RunWrite(DB)
-  if (err != nil) { return err }
-  x.AfterDelete()
-  return nil
+	x.BeforeDelete()
+	_, err := r.Table(x.Table()).Get(x.GetID()).Delete().RunWrite(DB)
+	if err != nil {
+		return err
+	}
+	x.AfterDelete()
+	return nil
+}
+
+func Validate(x Recorder) {
+	x.BeforeValidate()
+	x.PerformValidations()
+	x.AfterValidate()
 }
 
 //////////////////////////////
 //////////////////////////////
 
 type Record struct {
-  ID string `gorethink:"id,omitempty" json:"id"`
-  CreatedAt time.Time `gorethink:"created_at" json:"created_at"`
-  UpdatedAt time.Time `gorethink:"updated_at" json:"-"`
-  Errors []string `gorethink:"-" json:"errors,omitempty"`
-  ErrorMap map[string]bool `gorethink:"-" json:"-"`
+	ID        string          `gorethink:"id,omitempty" json:"id"`
+	CreatedAt time.Time       `gorethink:"created_at" json:"created_at"`
+	UpdatedAt time.Time       `gorethink:"updated_at" json:"-"`
+	Errors    []string        `gorethink:"-" json:"errors,omitempty"`
+	ErrorMap  map[string]bool `gorethink:"-" json:"-"`
 }
 
 func (x *Record) Table() string {
-  return "records"
+	return "records"
 }
 
 func (x *Record) IsNewRecord() bool {
-  return x.GetID() == ""
+	return x.GetID() == ""
 }
 
 //////////////////////////////
 // ID ////////////////////////
 
 func (x *Record) GetID() string {
-  return x.ID
+	return x.ID
 }
 
-func (x *Record) SetID(id string) {
-  x.ID = id
+func (x *Record) AssignID(id string) {
+	x.ID = id
 }
 
 //////////////////////////////
 // VALIDATIONS ///////////////
 
 func (x *Record) BeforeValidate() {
-  x.Errors = []string{}
-  x.ErrorMap = map[string]bool{}
+	x.Errors = []string{}
+	x.ErrorMap = map[string]bool{}
 }
 
 func (x *Record) AfterValidate() {}
 
-func (x *Record) Validate() {}
+func (x *Record) PerformValidations() {}
 
-func (x *Record) HasErrors() (bool) {
-  return len(x.Errors) > 0
+func (x *Record) HasErrors() bool {
+	return len(x.Errors) > 0
 }
 
 func (x *Record) ErrorOn(attr string, message string) {
-  x.ErrorMap[attr] = true
-  x.Errors = append(x.Errors, message)
+	x.ErrorMap[attr] = true
+	x.Errors = append(x.Errors, message)
 }
 
 //////////////////////////////
-// CALLBACK //////////////////
+// CALLBACKS /////////////////
 
 func (x *Record) BeforeSave() {
-  x.UpdatedAt = time.Now()
+	x.UpdatedAt = time.Now()
 }
 
 func (x *Record) AfterSave() {}
 
 func (x *Record) BeforeCreate() {
-  x.CreatedAt = time.Now()
-  x.UpdatedAt = x.CreatedAt
+	x.CreatedAt = time.Now()
+	x.UpdatedAt = x.CreatedAt
 }
 
 func (x *Record) AfterCreate() {}
@@ -157,3 +189,37 @@ func (x *Record) AfterUpdate() {}
 func (x *Record) BeforeDelete() {}
 
 func (x *Record) AfterDelete() {}
+
+//////////////////////////////
+// GETTERS ///////////////////
+
+func Find(result Recorder, id string) error {
+	res, err := r.Table(result.Table()).Get(id).Run(DB)
+	if err != nil {
+		return err
+	}
+	err = res.One(result)
+	return err
+}
+
+func FindByIndex(result Recorder, index string, value string) error {
+	res, err := r.Table(result.Table()).GetAllByIndex(index, value).Run(DB)
+	if err != nil {
+		return err
+	}
+	err = res.One(result)
+	return err
+}
+
+//////////////////////////////
+// SETTERS ///////////////////
+
+func UpdateAttribute(result Recorder, attribute string, value interface{}) error {
+	payload := map[string]interface{}{attribute: value}
+	return UpdateAttributes(result, payload)
+}
+
+func UpdateAttributes(result Recorder, values map[string]interface{}) error {
+	_, err := r.Table(result.Table()).Get(result.GetID()).Update(values).RunWrite(DB)
+	return err
+}

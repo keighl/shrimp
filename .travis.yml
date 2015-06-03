@@ -20,8 +20,6 @@ before_install:
 
 script:
   - go test -coverprofile=api.coverprofile ./api
-  - go test -coverprofile=utils.coverprofile ./utils
   - go test -coverprofile=models.coverprofile ./models
-  - go test -coverprofile=main.coverprofile
   - $HOME/gopath/bin/gover
   - $HOME/gopath/bin/goveralls -coverprofile=gover.coverprofile -service travis-ci

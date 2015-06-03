@@ -1,57 +1,46 @@
 package models
 
-import (
-  "strings"
-)
+import ()
 
 type Todo struct {
-  Record
-  Title string `gorethink:"title" json:"title"`
-  UserID string `gorethink:"user_id" json:"-"`
-  Complete bool `gorethink:"complete" json:"complete"`
+	Record
+	UserID string `gorethink:"user_id" json:"-"`
+	Title  string `gorethink:"title" json:"title"`
 }
 
 type TodoAttrs struct {
-  Title string `json:"title" form:"title"`
-  Complete bool `json:"complete" form:"complete"`
+	Title string `form:"title" json:"title"`
 }
 
 func (x *Todo) Table() string {
-  return "todos"
+	return "todos"
 }
 
 //////////////////////////////
 // VALIDATIONS ///////////////
 
-func (x *Todo) Validate() {
-  x.Record.Validate()
-  x.Trimspace()
-  x.ValidateTitle()
+func (x *Todo) PerformValidations() {
+	x.Record.PerformValidations()
+	x.ValidateTitle()
 }
 
 func (x *Todo) ValidateTitle() {
-  if (x.Title == "") {
-    x.ErrorOn("Title", "Title can't be blank.")
-  }
-}
-
-func (x *Todo) Trimspace() {
-  x.Title = strings.TrimSpace(x.Title)
+	if x.Title == "" {
+		x.ErrorOn("Title", "Title can't be blank.")
+	}
 }
 
 //////////////////////////////
 // OTHER /////////////////////
 
 func (x *Todo) UpdateFromAttrs(attrs TodoAttrs) {
-  if (attrs.Title != "") { x.Title = attrs.Title }
-  x.Complete = attrs.Complete
+	if attrs.Title != "" {
+		x.Title = attrs.Title
+	}
 }
 
-func (x *TodoAttrs) Todo() (*Todo) {
-  return &Todo{
-    Title: x.Title,
-    Complete: x.Complete,
-  }
+func (x *TodoAttrs) Todo() *Todo {
+	return &Todo{
+		Title: x.Title,
+	}
 }
-
-
