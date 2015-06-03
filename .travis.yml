@@ -9,10 +9,10 @@ before_script:
   - sudo apt-get update -q
   - sudo apt-get install rethinkdb
   - sudo rethinkdb --daemon
-  - cp utils/config.go.example utils/config.go
+  - cp config/config.go.example config/config.go
 
 before_install:
-  - cp utils/config.go.example utils/config.go
+  - cp config/config.go.example config/config.go
   - go get github.com/axw/gocov/gocov
   - go get github.com/modocache/gover
   - go get github.com/mattn/goveralls
