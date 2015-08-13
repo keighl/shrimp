@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/jrallison/go-workers"
-	"github.com/keighl/drschollz"
+	"github.com/seasaltio/drschollz"
 	c "github.com/keighl/shrimp/config"
 	m "github.com/keighl/shrimp/models"
 	"log"

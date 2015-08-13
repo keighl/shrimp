@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/go-martini/martini"
 	"github.com/jrallison/go-workers"
-	"github.com/keighl/drschollz"
+	"github.com/seasaltio/drschollz"
 	c "github.com/keighl/shrimp/config"
 	m "github.com/keighl/shrimp/models"
 	"github.com/martini-contrib/binding"
